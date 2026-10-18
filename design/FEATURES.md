@@ -21,7 +21,7 @@ Markdown remains the portable text layer. Rich presentation includes font family
 
 | Area | Intended product capabilities | Current design status |
 | --- | --- | --- |
-| Character formatting | Font family, exact point size, increase/decrease, color, highlight, emphasis, sub/superscript, clear direct formatting | Basic controls and color/point-size prototype; broader character dialog planned |
+| Character formatting | Font family, exact point size, increase/decrease, color, highlight, emphasis, sub/superscript, clear direct formatting | Dropdown with selection synchronization and Mixed state, A−/A+, script controls and distinct highlighter/font-color symbols; broader character dialog planned |
 | Paragraph formatting | Left/center/right/justify, indent, tabs, line/paragraph spacing, lists, numbering, borders, keep-with-next | Core ribbon illustration; paragraph dialog planned |
 | Styles | Paragraph, character, list, and page styles; create/update styles; direct-formatting indicators | Heading examples; style manager planned |
 | Page design | Paper size, orientation, individual margins, gutter, mirrored pages, sections, columns | Size/orientation/margin dialog works in prototype; advanced layouts planned |
@@ -29,10 +29,10 @@ Markdown remains the portable text layer. Rich presentation includes font family
 | Headers and pagination | Header/footer sections, automatic page numbers, first-page differences, page/section breaks | Visual sample footer; true pagination planned |
 | Tables | Insert/edit rows/columns, merge/split, widths, alignment, borders, repeated headers | Insert example; table editing panel planned |
 | Images and objects | Local images, captions, crop/resize, anchoring, wrapping, equations, symbols | Image insertion preview; richer object tools planned |
-| Charts and diagrams | Data-driven charts, flowcharts, Mermaid source, graph manager, re-editing, accessible descriptions | Working local Mermaid studio with data/source forms, zoom, and node inspection |
+| Charts and diagrams | Data-driven charts, flowcharts, Mermaid source, graph manager, re-editing, accessible descriptions | Multi-series data grid; CSV/TSV/Markdown-table import; right-click selected-data chart creation; visual flow nodes/shapes/connections/branches; undo/redo; additional source templates; portable visual-model round-trip |
 | Review | Spell/grammar checks, dictionary, autocorrect, tracked changes, anchored comments, compare documents | Browser spellcheck, session comments; review engine planned |
 | Search | Find/replace, regular expressions, document/workspace scope, navigation through matches | Basic document search; replace and advanced search planned |
-| Files and recovery | Open/save/save-as, recent files, autosave, crash recovery, external-change detection, encodings | Browser storage/export; native file services planned |
+| Files and recovery | Open/save/save-as, recent files, autosave, crash recovery, external-change detection, encodings | File-tab autosave toggle with actual browser-storage gating and manual Save now/Ctrl+S; unsaved indicator and close protection; native file services planned |
 | Output | Markdown, styled HTML, print/PDF, accessibility tags, bookmarks, metadata, font embedding | Prototype Markdown/static HTML and print styles; native PDF engine planned |
 | Workspace | Templates, archive, settings, document tabs, custom panels, command palette | Partial visual shell; template/archive functionality planned |
 | Git | Repository configuration, status, diff, commit, history, pull/push, conflict resolution | Source repository only; app integration planned |
@@ -44,10 +44,15 @@ Markdown remains the portable text layer. Rich presentation includes font family
 - Dark default uses navy main surfaces and orange highlights.
 - Main and accent colors are independent settings per mode. Provide a reset for each mode.
 - Place A− / point-size field / A+ beside the font family selector.
+- Retain a dropdown for point sizes, synchronize it with selected text, show Mixed when appropriate, and keep the underlying point size when subscript/superscript changes the displayed glyph size.
+- Use a highlighter pen icon for background highlighting, an underlined A for font color, and conventional x₂ / x² controls for scripts.
 - Use mirrored ragged-line symbols for left/right alignment.
 - Keep font color separate from highlighting and interface accent colors.
 - Page setup includes margin presets and four explicit measurements with a layout preview.
-- Graph studio is a resizable-window concept, with object properties, an editable data form, live preview, source editor, validation, and insert/update actions. The HTML prototype represents it as a modal; the native app may use a real floating window or dockable editor.
+- Graph studio is a resizable-window concept with an editable data grid, flowchart object properties, live clickable preview, source editor, validation, history, and insert/update actions. Flowcharts support process/rounded/decision/start-end/database/subprocess nodes; directed/plain/dashed connections; labels; layout direction; and one-click decision branches. Additional Mermaid diagram families start from source templates. The prototype uses a modal; the native app may use a floating window or dockable editor.
+- Creating a chart from selected data must preserve the original data. Changing chart type must retain all series. Pie charts explicitly choose one numeric series. Converting selected data to a flowchart turns its categories/values into steps.
+- The visual model travels in a Mermaid comment so reopening exported Markdown restores the forms. Edited custom source is preserved as source whenever the model cannot represent it; never overwrite custom syntax with stale metadata.
+- Autosave is a visible File-tab preference. Turning it off must stop automatic persistence while preserving explicit Save. The native app will use atomic disk writes, recovery snapshots, and clear errors; the prototype uses browser storage.
 
 ## References
 

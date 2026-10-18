@@ -3,6 +3,7 @@
 Object.assign(paths, {
   alignRight: 'M3 5h18M9 10h12M3 15h18M9 20h12',
   chart: 'M3 3v18h18M7 16v-5m5 5V7m5 9V4',
+  highlighter: 'm14 3 7 7-9 9-7-7ZM5 12l-2 5 4 4 5-2M2 22h9',
   palette: 'M12 3a9 9 0 1 0 0 18h2a2 2 0 0 0 0-4h-1a2 2 0 0 1 0-4h4a4 4 0 0 0 4-4c0-3-4-6-9-6ZM7 8h.01M11 6h.01M16 8h.01M6 13h.01'
 });
 $('#appearance').innerHTML=icon('palette');
@@ -78,14 +79,49 @@ window.addEventListener('storage',e=>{if(e.key==='editor-md-appearance-v1'){appe
 $('#appearance').onclick=appearanceDialog;
 
 let currentFontSize=12;
+let changingFontSize=false;
+function sizeOption(value,label=String(value)){
+  const field=$('#size');if(!field)return;
+  if(![...field.options].some(o=>o.value===String(value))){const option=new Option(label,String(value));option.dataset.selection='true';field.add(option)}
+  field.value=String(value);
+}
+function selectedTextElements(range){
+  const elements=new Set();
+  if(range.collapsed){const node=range.startContainer;elements.add(node.nodeType===3?node.parentElement:node);return [...elements]}
+  const walker=document.createTreeWalker($('#paper'),NodeFilter.SHOW_TEXT);
+  while(walker.nextNode()){
+    const node=walker.currentNode;
+    if(!node.textContent.trim()||node.parentElement.closest('[contenteditable="false"]')||!range.intersectsNode(node))continue;
+    if(node===range.startContainer&&range.startOffset===node.length)continue;
+    if(node===range.endContainer&&range.endOffset===0)continue;
+    elements.add(node.parentElement);
+  }
+  return [...elements];
+}
+function syncFontControls(){
+  if(changingFontSize)return;
+  const live=window.getSelection();
+  const range=live.rangeCount&&$('#paper').contains(live.anchorNode)?live.getRangeAt(0):selection;
+  if(!range||!$('#paper').contains(range.commonAncestorContainer)){sizeOption(currentFontSize);return}
+  const elements=selectedTextElements(range);
+  const sizeElement=element=>{for(let node=element;node&&node!==$('#paper');node=node.parentElement){if(node.style.fontSize||node.getAttribute('size'))return node;if(['SUB','SUP'].includes(node.tagName))return node.parentElement}return element};
+  const sizes=new Set(elements.map(e=>Math.round(parseFloat(getComputedStyle(sizeElement(e)).fontSize)*.75*100)/100));
+  if(sizes.size===1){currentFontSize=[...sizes][0];sizeOption(currentFontSize)}else if(sizes.size>1)sizeOption('','Mixed');
+  const family=$('#font');if(family&&elements.length){const families=new Set(elements.map(e=>getComputedStyle(e).fontFamily.split(',')[0].replaceAll(/['"]/g,'').trim()));if(families.size===1){const name=[...families][0];if(![...family.options].some(o=>o.value===name))family.add(new Option(name,name));family.value=name}else{if(![...family.options].some(o=>o.value===''))family.add(new Option('Mixed',''));family.value=''}}
+  if(live.rangeCount&&$('#paper').contains(live.anchorNode))for(const command of ['bold','italic','underline','strikeThrough','subscript','superscript']){
+    const button=$('[data-action="'+command+'"]');if(button){const active=document.queryCommandState(command);button.classList.toggle('selected',active);button.setAttribute('aria-pressed',String(active))}
+  }
+}
+document.addEventListener('selectionchange',syncFontControls);
+document.addEventListener('documentchange',()=>queueMicrotask(syncFontControls));
 function normalizeFontSizes(){
   $$('#paper font[size="7"]').forEach(e=>{e.style.fontSize=currentFontSize+'pt';e.removeAttribute('size')});
 }
 function setFontSize(size){
-  if(!Number.isFinite(size)||size<6||size>96){toast('Choose a font size from 6 to 96 pt');if($('#size'))$('#size').value=currentFontSize;return}
-  currentFontSize=Math.round(size*2)/2;
-  if($('#size'))$('#size').value=currentFontSize;
-  format('fontSize','7');normalizeFontSizes();save();$('#source').value=markdown($('#paper').innerHTML);
+  if(!Number.isFinite(size)||size<6||size>96){toast('Choose a font size from 6 to 96 pt');sizeOption(currentFontSize);return}
+  if(mode==='source'){toast('Switch to Write or Split to format text');syncFontControls();return}
+  changingFontSize=true;
+  try{currentFontSize=Math.round(size*100)/100;sizeOption(currentFontSize);format('fontSize','7');normalizeFontSizes();save();$('#source').value=markdown($('#paper').innerHTML)}finally{changingFontSize=false;syncFontControls()}
 }
 $('#paper').addEventListener('input',normalizeFontSizes,true);
 function fontColorDialog(){
@@ -145,9 +181,19 @@ Object.assign(officeActions,{
   'font-color':fontColorDialog,
   page:pageDialog,
   export:exportDialog,
-  print:()=>{applyPage();window.print()}
+  print:()=>{applyPage();window.print()},
+  'save-now':()=>{if(save({manual:true}))toast('Saved in this browser');else toast('Save failed; export a copy to keep your work')}
 });
+function mountAutosaveControl(){
+  const section=document.createElement('div');section.className='ribbon-group autosave-group';
+  section.innerHTML='<label class="autosave-control"><input type="checkbox" role="switch" id="autosave-toggle" aria-label="Autosave file"><span>Autosave file<small id="autosave-description"></small></span><span class="autosave-track" aria-hidden="true"></span></label><div class="ribbon-label">Saving</div>';
+  $('#ribbon').append(section);
+  const field=$('#autosave-toggle');field.checked=autosaveEnabled;
+  const describe=()=>$('#autosave-description').textContent=autosaveEnabled?'On · save edits automatically':'Off · use Save now or Ctrl+S';describe();
+  field.onchange=()=>{autosaveEnabled=field.checked;try{localStorage.setItem('editor-md-autosave',autosaveEnabled?'on':'off')}catch{}if(autosaveEnabled)save();else updateSaveState();describe();toast(autosaveEnabled?'Autosave enabled':'Autosave off. Use Save now or Ctrl+S.')};
+}
+window.addEventListener('beforeunload',e=>{if(JSON.stringify(files)!==lastSavedWorkspace){e.preventDefault();e.returnValue=''}});
 $('#export').onclick=exportDialog;
 document.addEventListener('documentchange',applyPage);
 $('#dialog').addEventListener('close',()=>{$('#dialog').classList.remove('graph-studio')});
-applyAppearance();applyPage();ribbon('Home');
+applyAppearance();applyPage();ribbon('Home');updateSaveState();

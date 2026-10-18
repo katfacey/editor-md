@@ -21,9 +21,13 @@ Mermaid is installed locally so diagram rendering works offline after installati
 - Inspect document statistics, jump to headings, and add or resolve preview comments.
 - Switch color themes, enter focus mode, and adjust document zoom.
 - Customize main and accent colors independently for light and dark mode with the palette button. Light retains the original warm paper/green palette; dark defaults to navy blue/orange.
-- Increase/decrease exact font sizes in points and apply font colors to selected text.
+- Keep the font-size dropdown alongside A− / A+. It follows the selected text, shows Mixed for differing sizes, and reflects inherited point sizes for subscript/superscript. Font family and character formatting states follow the selection too.
+- Apply subscript, superscript, font color, or highlighting with distinct character tools (the highlighter uses a marker icon).
 - Choose paper size/orientation and individual margins from Layout → Page setup.
-- Create or edit bar charts, line charts, pie charts, flowcharts, and custom Mermaid in Insert → Graph studio. Use live preview, data forms, source editing, and zoom; inserted graphs can be reopened with Edit graph.
+- Create or edit charts in Insert → Graph studio. The spreadsheet-style data grid supports multiple series, row/series insertion/removal, labels, axis titles, and selecting a series for pie charts. Switching chart types preserves the data.
+- Build flowcharts with clickable preview nodes, editable labels/shapes, labeled connections, direction controls, and a Decision + Yes / No branches action. The studio includes undo/redo and templates for sequence, Gantt, mind-map, state, class, and entity-relationship diagrams, with source editing for those additional types.
+- Select table/CSV/TSV data and right-click → Make chart from data. Choose the chart type in the studio; inserting the chart keeps the original table. The same action is under Insert → Chart from selection and the keyboard context menu (Shift+F10).
+- Toggle Autosave file under File. With autosave off, edits remain in memory and the save indicator shows unsaved changes; Save now or Ctrl+S persists them. In this prototype, persistence is browser storage. The future Windows app will autosave actual files.
 - Save changes in browser storage with Ctrl+S; export a `.md` copy from Export.
 
 ## Scope
@@ -44,7 +48,8 @@ See [the Writer-inspired feature roadmap](design/FEATURES.md) for the broader of
 | `styles.css` | Layout, responsive behavior, and theme tokens |
 | `app.js` | Prototype editing and interface interactions |
 | `office.js`, `office.css` | Appearance, font controls, page setup, and export presentation |
-| `graphs.js` | Local Mermaid renderer, graph studio, and document graph interaction |
+| `chart-model.js` | Data import, chart/flowchart model, validation, and portable source round-trip |
+| `graph-studio.js`, `editing.css` | Visual graph builder, selected-data context menu, and expanded editing controls |
 | `serve.cjs` | Dependency-free local preview server |
 | `design/` | Comparison image and implementation reference |
 
@@ -52,4 +57,4 @@ The project has no chosen open-source license yet.
 
 ## Validation
 
-`npm run check` checks JavaScript syntax. Browser validation covers theme defaults and customization, font size/color round-trips, page-margin presets/persistence, graph generation/editing/source export, invalid graph input, and the desktop comparison layout.
+`npm run check` checks JavaScript syntax. `npm test` covers data parsing, invalid data, multiple series, branching-flowchart round-trips, safe node deletion, and preserving custom source edits. Browser checks cover selected/mixed font sizes, script formatting, autosave off/manual save, flowchart node editing/branching/undo, templates, and right-click chart creation from a real table without deleting its data.

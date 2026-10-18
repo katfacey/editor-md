@@ -5,7 +5,8 @@
   "description": "Interactive design reference for the standalone Editor, MD Windows application",
   "scripts": {
     "start": "node serve.cjs",
-    "check": "node --check app.js && node --check office.js && node --check graphs.js"
+    "check": "node --check app.js && node --check office.js && node --check chart-model.js && node --check graph-studio.js",
+    "test": "node --test tests/*.test.cjs"
   },
   "dependencies": {
     "mermaid": "12.2.0"
