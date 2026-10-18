@@ -1,0 +1,13 @@
+{
+  "name": "editor-md-design",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Interactive design reference for the standalone Editor, MD Windows application",
+  "scripts": {
+    "start": "node serve.cjs",
+    "check": "node --check app.js && node --check office.js && node --check graphs.js"
+  },
+  "dependencies": {
+    "mermaid": "12.2.0"
+  }
+}

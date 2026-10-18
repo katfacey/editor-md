@@ -14,16 +14,16 @@ The left pane contains the local workspace, Files / Outline / Bookmarks, folder 
 
 | Role | Light | Dark |
 | --- | --- | --- |
-| Application workspace | `#eeefec` | `#242c28` |
-| Controls and sidebars | `#fafbf8` | `#1d2521` |
-| Writing page | `#fffefa` | `#2d3730` |
-| Main text | `#28332f` | `#e0e5da` |
-| Secondary text | `#7b837c` | `#9ea99e` |
-| Borders | `#dfe3dc` | `#3c493f` |
-| Accent | `#35644d` | `#9ebd9d` |
-| Selected surface | `#e6ede3` | `#3b4d3c` |
+| Application workspace | `#eeefec` | `#111e33` |
+| Controls and sidebars | `#fafbf8` | Derived darker navy |
+| Writing page | `#fffefa` | Derived lighter navy |
+| Main text | `#28332f` | `#e6edf7` |
+| Secondary text | `#7b837c` | `#a2b1c6` |
+| Borders | `#dfe3dc` | Derived from navy |
+| Accent | `#35644d` | `#f0a15a` |
+| Selected surface | `#e6ede3` | Navy/orange blend |
 
-Use DM Sans for interface controls, Libre Baskerville for editorial titles, and a monospace face for source. Bundle licensed fonts with the native app or use system fallbacks. Green indicates selection and active controls. Yellow highlighting associates passage annotations with comments. Add focus indicators and labels independently of color.
+Use DM Sans for interface controls, Libre Baskerville for editorial titles, and a monospace face for source. Bundle licensed fonts with the native app or use system fallbacks. Each theme has customizable main and accent colors. Green is the light default accent; orange is the dark default accent. Yellow highlighting associates passage annotations with comments. Add focus indicators and labels independently of color.
 
 ## Interaction model
 
@@ -51,6 +51,6 @@ The comparison view intentionally scales two 1440 × 1040 desktop shells togethe
 
 ## Implementation boundaries
 
-No Rust framework or library has been selected. Keep the eventual document model, filesystem services, diagnostics, and Git integration independent from the UI toolkit. This repository currently supplies the visual reference, not a working native backend.
+No Rust framework or library has been selected. The deliverable must be a standalone Windows `.exe`, working offline with native local file access. Keep the eventual document model, filesystem services, diagnostics, and Git integration independent from the UI toolkit. This repository currently supplies the visual reference, not a working native backend. See [the feature roadmap](FEATURES.md) for Writer-inspired scope and format/export decisions.
 
 Prototype comments, dates, author identity, tags, and document-health wording are sample content. The article is authored for this mock-up except the short attributed-by-context simplicity quotation; replace sample content before product release. Character and word counts are simple browser-text estimates.
