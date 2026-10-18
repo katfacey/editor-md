@@ -138,17 +138,20 @@ function fontColorDialog(){
   $('#cancel-color').onclick=()=>$('#dialog').close();
 }
 
-const defaultPage={size:'Letter',orientation:'portrait',top:.67,bottom:.67,left:.79,right:.79};
+const defaultPage={size:'Letter',orientation:'portrait',top:1,bottom:1,left:1,right:1};
 const pageSizes={Letter:[8.5,11],A4:[8.2677,11.6929],Legal:[8.5,14]};
 function applyPage(){
   const page={...defaultPage,...files[active].page};
   let [width,height]=pageSizes[page.size]||pageSizes.Letter;
   if(page.orientation==='landscape')[width,height]=[height,width];
-  const scale=690/width;
+  // CSS uses 96 pixels per inch, so paper, type and margins share one scale.
+  const scale=96;
   const paper=$('#paper');
+  paper.style.setProperty('--page-width',width*scale+'px');
   paper.style.setProperty('--page-top',page.top*scale+'px');paper.style.setProperty('--page-bottom',page.bottom*scale+'px');
   paper.style.setProperty('--page-left',page.left*scale+'px');paper.style.setProperty('--page-right',page.right*scale+'px');
   paper.style.setProperty('--page-height',height*scale+'px');
+  $('.page-caption').textContent=page.size+' · '+Number(width.toFixed(2))+' × '+Number(height.toFixed(2))+' in';
   let printStyle=$('#print-page-style');
   if(!printStyle){printStyle=document.createElement('style');printStyle.id='print-page-style';document.head.append(printStyle)}
   printStyle.textContent=`@page {size:${width}in ${height}in;margin:${page.top}in ${page.right}in ${page.bottom}in ${page.left}in;}`;
@@ -161,6 +164,7 @@ function pageDialog(){
     <div class="field-grid">${['top','bottom','left','right'].map(k=>`<label>${k[0].toUpperCase()+k.slice(1)} (in)<input type="number" id="margin-${k}" min="0" max="3" step="0.05" value="${p[k]}"></label>`).join('')}</div>
     </div><div class="page-layout-preview"><div class="mini-page"><div></div></div><span id="page-dimensions"></span></div></div><p id="page-error" class="validation-error" role="alert"></p><div class="dialog-actions"><button id="cancel-page">Cancel</button><button class="primary" id="apply-page">Apply layout</button></div>`);
   $('#paper-size').value=p.size;$('#page-orientation').value=p.orientation;
+  if(['top','bottom','left','right'].every(k=>p[k]===p.top)&&[0.5,1,1.25].includes(p.top))$('#margin-preset').value=String(p.top);
   function values(){return {size:$('#paper-size').value,orientation:$('#page-orientation').value,...Object.fromEntries(['top','bottom','left','right'].map(k=>[k,Number($('#margin-'+k).value)]))}}
   function preview(){let v=values(),[w,h]=pageSizes[v.size];if(v.orientation==='landscape')[w,h]=[h,w];let m=$('.mini-page');m.style.aspectRatio=w+'/'+h;m.style.padding=`${v.top/h*100}% ${v.right/w*100}% ${v.bottom/h*100}% ${v.left/w*100}%`;$('#page-dimensions').textContent=w.toFixed(2)+' × '+h.toFixed(2)+' in';}
   $$('#dialog input,#dialog select:not(#margin-preset)').forEach(e=>e.oninput=()=>{$('#margin-preset').value='custom';preview()});
@@ -182,14 +186,11 @@ function syncLayoutControls(){
     const selected=button.dataset.documentLayout===documentLayout;
     button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
   });
-  $$('[data-action="layout-page"],[data-action="layout-web"]').forEach(button=>{
-    const selected=button.dataset.action==='layout-'+documentLayout;
-    button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
-  });
 }
 function setDocumentLayout(layout){
   documentLayout=layout==='web'?'web':'page';
   $('.document-area').classList.toggle('web-layout',documentLayout==='web');
+  applyPage();
   try{localStorage.setItem('editor-md-document-layout',documentLayout)}catch{}
   syncLayoutControls();
 }
@@ -198,8 +199,6 @@ $$('[data-document-layout]').forEach(button=>{
   button.onclick=()=>setDocumentLayout(button.dataset.documentLayout);
 });
 Object.assign(officeActions,{
-  'layout-page':()=>setDocumentLayout('page'),
-  'layout-web':()=>setDocumentLayout('web'),
   appearance:appearanceDialog,
   'font-smaller':()=>setFontSize(currentFontSize-1),
   'font-larger':()=>setFontSize(currentFontSize+1),

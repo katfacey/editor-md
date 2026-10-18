@@ -2,9 +2,12 @@
 /* Screen layout never changes document margins or print geometry. */
 .canvas-top{flex-wrap:wrap;row-gap:7px}.breadcrumbs{min-width:0;overflow:hidden;white-space:nowrap}.breadcrumbs strong{overflow:hidden;text-overflow:ellipsis}
 .layout-switch{display:flex;flex-shrink:0;gap:2px;padding:3px;background:var(--surface);border:1px solid var(--line);border-radius:6px}
-.layout-switch button{font-size:10px;padding:4px 8px;color:var(--muted)}.layout-switch button.selected,.large-tool[data-action^="layout-"].selected{background:var(--pale);color:var(--green)}
+.layout-switch button{font-size:10px;padding:4px 8px;color:var(--muted)}.layout-switch button.selected{background:var(--pale);color:var(--green)}
 .mode-switch{flex-shrink:0}
 @media screen{
+  .document-area:not(.web-layout) .editing-surface:not(.source){width:max-content;min-width:100%;max-width:none;align-items:flex-start}
+  .document-area:not(.web-layout) .paper{flex:none;width:var(--page-width,816px);max-width:none;height:var(--page-height,1056px);min-height:0;padding:var(--page-top,96px) var(--page-right,96px) var(--page-bottom,96px) var(--page-left,96px);overflow:auto;overscroll-behavior:contain}
+  .document-area:not(.web-layout) .split #source{flex:none;width:420px}
   .web-layout .ruler,.web-layout .page-caption{display:none}
   .web-layout .canvas-scroll{background:var(--paper);padding:30px clamp(18px,4vw,60px) 40px}
   .web-layout .editing-surface{max-width:none;width:100%;min-height:100%;margin:0;align-items:stretch}
