@@ -31,6 +31,10 @@ The default Home ribbon exposes clipboard, text formatting, paragraph structure,
 
 Write is a document-focused editing view. Source exposes Markdown. Split shows source beside rendered content. The final app should preserve Markdown as the source of truth, synchronize cursor positions and scrolling, and avoid lossy conversions between independent HTML and text models.
 
+Page and Web are independent screen layouts, available above the document and under View. Page uses the paper canvas, ruler and configured margins. Web uses a continuous surface that reflows across the editing area without paper bounds or a ruler. Switching layouts preserves the document and its selection; it does not change the document's page setup. Printing and PDF always use page settings. The prototype remembers this view preference locally. Its Page view illustrates paper proportions; true multipage pagination remains native-app work.
+
+Current references: [light Page layout](page-layout.png) and [dark Web layout](web-layout.png).
+
 Local files and user control are central. Show actual save state and actionable failures. Distinguish saving, exporting, and Git synchronization. Keep Git commands separate from ordinary document saving, and explain authentication or merge conflicts when they occur.
 
 The comparison view intentionally scales two 1440 × 1040 desktop shells together so the layouts are identical. Use the full-size editor for readability and interaction. At narrower full-size widths, hide the inspector first, then the file navigator, and retain essential editing commands.
@@ -48,6 +52,7 @@ The comparison view intentionally scales two 1440 × 1040 desktop shells togethe
 | Accessibility | Full keyboard navigation, semantic controls, scalable UI, screen-reader support | Labeled controls and native browser focus behavior |
 | Workspace | Templates, archive, workspace configuration | Planned placeholders |
 | Git | Repository settings, status, diff, commit, push/pull | Future implementation; no simulated sync controls |
+| Agents | Local MCP adapter to shared Rust document commands; scoped access, revision checks, undo and guarded save/export | [Interface design](AGENT-INTERFACE.md) and [tool schemas](agent-tools.json); no runtime server yet |
 
 ## Implementation boundaries
 

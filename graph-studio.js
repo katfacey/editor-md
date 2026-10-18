@@ -49,20 +49,19 @@ const diagramTemplates={
 };
 const shapeNames={process:'Process ▭',rounded:'Rounded step',decision:'Decision ◇',terminal:'Start / end',database:'Database',subroutine:'Subprocess'};
 const diagramNames={bar:'Bar chart',line:'Line chart',pie:'Pie chart',flow:'Flowchart',sequence:'Sequence diagram',gantt:'Gantt schedule',mindmap:'Mind map',state:'State diagram',class:'Class diagram',er:'Entity relationship',source:'Custom Mermaid'};
-function graphStudio(existing=null,options={}){
-  const originalRange=(options.range||selection)?.cloneRange(),sourcePosition=options.sourcePosition??$('#source').selectionEnd;
-  let chart=ChartModel.sampleChart(),flow=ChartModel.sampleFlow(),type='bar',customSource='',selectedNode='N3',selectedEdge='E3',flowTab='nodes',importError='',showImport=!!options.data,showSource=false,previewZoom=1,validSource='',request=0,debounce;
+function graphStudio(existing=null){
+  const originalRange=selection?.cloneRange(),sourceStart=$('#source').selectionStart,sourceEnd=$('#source').selectionEnd;
+  let chart=ChartModel.sampleChart(),flow=ChartModel.sampleFlow(),type='bar',customSource='',selectedNode='N3',selectedEdge='E3',flowTab='nodes',importError='',showImport=false,showSource=false,previewZoom=1,validSource='',request=0,debounce;
   const model=existing?ChartModel.fromSource(existing.dataset.mermaid):null;
   if(model?.kind==='chart'){chart=model;type=model.type}else if(model?.kind==='flow'){flow=model;type='flow';selectedNode=flow.nodes[0].id;selectedEdge=flow.edges[0]?.id}else if(existing){type='source';customSource=existing.dataset.mermaid;showSource=true}
-  if(options.data){try{chart=ChartModel.parseData(options.data)}catch(error){importError=error.message;chart.labels=[''];chart.series=[{name:'Value',values:[null]}]}}
-  const past=[],future=[];let flowFromSelection=false;
+  const past=[],future=[];
   const snapshot=()=>JSON.stringify({chart,flow,type,customSource,selectedNode,selectedEdge,flowTab});
   const remember=()=>{past.push(snapshot());if(past.length>60)past.shift();future.length=0};
   function restore(serialized){({chart,flow,type,customSource,selectedNode,selectedEdge,flowTab}=JSON.parse(serialized));importError='';renderForm();schedule()}
   function change(mutate,redraw=false){remember();mutate();importError='';if(redraw)renderForm();schedule()}
   function nextId(prefix,items){let i=1;while(items.some(item=>item.id===prefix+i))i++;return prefix+i}
   const option=(value,label,current)=>'<option value="'+escapeHtml(value)+'" '+(value===current?'selected':'')+'>'+escapeHtml(label)+'</option>';
-  openDialog(existing?'Edit graph':options.data?'Make chart from data':'Graph studio',`
+  openDialog(existing?'Edit graph':'Graph studio',`
     <div class="studio-menubar studio-commandbar"><button id="studio-undo" title="Undo graph edit">${icon('undo')} Undo</button><button id="studio-redo" title="Redo graph edit">${icon('redo')} Redo</button><button id="studio-import">${icon('table')} Import data</button><button id="studio-example">Load example</button><button id="studio-export">Save Mermaid</button><span></span><button id="graph-show-source">${icon('code')} Source</button></div>
     <div class="studio-body studio-v2"><aside class="graph-properties"><label for="graph-type">Diagram type</label><select id="graph-type">${Object.entries(diagramNames).map(([value,name])=>option(value,name,type)).join('')}</select><div id="graph-form"></div></aside><section class="studio-preview"><div class="studio-preview-head"><div><span>LIVE PREVIEW</span><small id="preview-help"></small></div><div><button id="preview-minus" aria-label="Zoom preview out">−</button><button id="preview-fit">Fit</button><button id="preview-plus" aria-label="Zoom preview in">+</button></div></div><div id="graph-preview" class="graph-preview"></div><div id="studio-legend"></div><p id="graph-error" class="validation-error" role="alert"></p><div class="graph-source-editor" hidden><label for="graph-source">Mermaid source</label><textarea id="graph-source" spellcheck="false"></textarea><button id="source-to-visual">Return to visual editor</button></div></section></div>
     <div class="studio-footer"><span id="graph-syntax-state" role="status" aria-live="polite"></span><div><button id="cancel-graph">Cancel</button><button class="primary" id="insert-graph" disabled>${existing?'Update graph':'Insert graph'}</button></div></div>`);
@@ -70,7 +69,6 @@ function graphStudio(existing=null,options={}){
   const importMarkup=()=>`<details class="data-import" ${showImport?'open':''}><summary>Paste a table / CSV / TSV</summary><textarea id="import-data" aria-label="Data to import" placeholder="Month, Sales, Costs&#10;Jan, 120, 80&#10;Feb, 160, 95"></textarea><label>First row<select id="import-header"><option value="auto">Detect headings automatically</option><option value="yes">Use as headings</option><option value="no">Contains data</option></select></label><button class="primary" id="apply-import">Use this data</button><p id="import-error" class="validation-error" role="alert">${escapeHtml(importError)}</p></details>`;
   function wireImport(){
     if(!$('#apply-import'))return;
-    if(options.data&&!$('#import-data').value)$('#import-data').value=options.data;
     $('#apply-import').onclick=()=>{try{const parsed=ChartModel.parseData($('#import-data').value,{header:$('#import-header').value});change(()=>{parsed.title=chart.title;chart=parsed;type=['bar','line','pie'].includes(type)?type:'bar';chart.type=type;showImport=false},true)}catch(error){$('#import-error').textContent=error.message}};
     $('.data-import').ontoggle=e=>showImport=e.target.open;
   }
@@ -121,7 +119,7 @@ function graphStudio(existing=null,options={}){
     $('#studio-undo').disabled=!past.length;$('#studio-redo').disabled=!future.length;
   }
   function schedule(){clearTimeout(debounce);request++;validSource='';$('#insert-graph').disabled=true;$('#graph-syntax-state').textContent='Updating…';debounce=setTimeout(preview,180)}
-  $('#graph-type').onchange=e=>{const next=e.target.value;try{const converted=next==='flow'&&options.data&&!flowFromSelection?ChartModel.flowFromChart(chart):null;change(()=>{type=next;if(['bar','line','pie'].includes(type))chart.type=type;else if(type==='flow'&&converted){flow=converted;flowFromSelection=true;selectedNode=flow.nodes[0].id}else if(type!=='flow'){customSource=diagramTemplates[type]||customSource||'flowchart LR\n  A["Start"] --> B["Finish"]';showSource=true}},true)}catch(error){$('#graph-error').textContent=error.message;$('#graph-type').value=type}};
+  $('#graph-type').onchange=e=>change(()=>{type=e.target.value;if(['bar','line','pie'].includes(type))chart.type=type;else if(type!=='flow'){customSource=diagramTemplates[type]||customSource||'flowchart LR\n  A["Start"] --> B["Finish"]';showSource=true}},true);
   $('#graph-show-source').onclick=()=>{showSource=!showSource;$('.graph-source-editor').hidden=!showSource;$('#graph-show-source').classList.toggle('selected',showSource)};
   $('#graph-source').oninput=e=>change(()=>{customSource=e.target.value;type='source';$('#graph-type').value='source'},true);
   $('#source-to-visual').onclick=()=>{const recovered=ChartModel.fromSource($('#graph-source').value);if(!recovered){$('#graph-error').textContent='This custom Mermaid cannot be represented by the visual editor. Keep editing it here to preserve every detail.';return}change(()=>{if(recovered.kind==='flow'){flow=recovered;type='flow'}else{chart=recovered;type=chart.type}},true)};
@@ -134,43 +132,14 @@ function graphStudio(existing=null,options={}){
   $('#insert-graph').onclick=()=>{
     if(!validSource)return;$('#dialog').close();
     if(existing){existing.dataset.mermaid=validSource;delete existing.dataset.rendered;save()}
-    else if(mode==='source'){const input=$('#source'),start=options.preserveData?sourcePosition:input.selectionStart,end=options.preserveData?sourcePosition:input.selectionEnd;input.value=input.value.slice(0,start)+'\n```mermaid\n'+validSource+'\n```\n'+input.value.slice(end);input.oninput()}
+    else if(mode==='source'){const input=$('#source');input.value=input.value.slice(0,sourceStart)+'\n```mermaid\n'+validSource+'\n```\n'+input.value.slice(sourceEnd);input.oninput()}
     else{
       selection=originalRange;
-      if(options.preserveData&&selection){const root=selection.endContainer.nodeType===3?selection.endContainer.parentElement:selection.endContainer;let block=root.closest('table,p,ul,ol,h1,h2,h3,div');if(block&&block!==$('#paper')&&$('#paper').contains(block)){while(block.parentElement!==$('#paper')&&block.parentElement&&block.parentElement!==$('#editing-surface'))block=block.parentElement;selection.setStartAfter(block);selection.collapse(true)}else selection.collapse(false)}
       insert(graphMarkup(validSource));
     }
     hydrateDiagrams();toast(existing?'Graph updated':'Graph inserted');
   };
   renderForm();preview();
 }
-function tableTextFromRange(range){
-  const fragment=range.cloneContents();
-  function text(node){
-    if(node.nodeType===3)return node.textContent;
-    if(node.nodeType!==1&&node.nodeType!==11)return '';
-    if(node.nodeName==='BR')return '\n';
-    if(node.nodeName==='TR')return [...node.children].filter(n=>['TD','TH'].includes(n.nodeName)).map(n=>n.textContent.trim()).join('\t')+'\n';
-    const value=[...node.childNodes].map(text).join('');
-    return ['P','DIV','LI','H1','H2','H3'].includes(node.nodeName)?value+'\n':value;
-  }
-  return text(fragment).trim();
-}
-function selectedChartData(){
-  if(mode==='source'){const input=$('#source');return {data:input.value.slice(input.selectionStart,input.selectionEnd),sourcePosition:input.selectionEnd,preserveData:true}}
-  const live=window.getSelection(),range=live.rangeCount&&$('#paper').contains(live.anchorNode)?live.getRangeAt(0).cloneRange():selection?.cloneRange();return {data:range?tableTextFromRange(range):'',range,preserveData:true};
-}
-function chartFromSelection(){const selected=selectedChartData();if(!selected.data.trim()){toast('Select a table, CSV, or tab-separated data first');return}graphStudio(null,selected)}
-const chartContextMenu=document.createElement('div');chartContextMenu.className='editor-context-menu';chartContextMenu.hidden=true;chartContextMenu.setAttribute('role','menu');chartContextMenu.innerHTML='<button role="menuitem" id="context-chart">'+icon('chart')+' Make chart from data…</button>';document.body.append(chartContextMenu);
-let contextSelection;
-function closeChartMenu(){chartContextMenu.hidden=true}
-function openChartMenu(event){
-  if(event.shiftKey&&event.type==='contextmenu')return;contextSelection=selectedChartData();if(!contextSelection.data.trim())return;
-  event.preventDefault();chartContextMenu.hidden=false;const rect=chartContextMenu.getBoundingClientRect(),paperRect=$('#paper').getBoundingClientRect();chartContextMenu.style.left=Math.max(8,Math.min(event.clientX||paperRect.left+30,innerWidth-rect.width-8))+'px';chartContextMenu.style.top=Math.max(8,Math.min(event.clientY||paperRect.top+30,innerHeight-rect.height-8))+'px';
-}
-$('#paper').addEventListener('contextmenu',openChartMenu);$('#source').addEventListener('contextmenu',openChartMenu);
-$('#context-chart').onmousedown=e=>e.preventDefault();$('#context-chart').onclick=()=>{closeChartMenu();graphStudio(null,contextSelection)};
-document.addEventListener('pointerdown',e=>{if(!chartContextMenu.contains(e.target))closeChartMenu()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeChartMenu();if((e.key==='F10'&&e.shiftKey)||e.key==='ContextMenu'){if($('#paper').contains(document.activeElement)||document.activeElement===$('#source')){openChartMenu(e);if(!chartContextMenu.hidden)$('#context-chart').focus()}}});
-officeActions.graphs=()=>graphStudio();officeActions['chart-from-selection']=chartFromSelection;
+officeActions.graphs=()=>graphStudio();
 document.addEventListener('documentchange',()=>hydrateDiagrams());document.addEventListener('appearancechange',()=>hydrateDiagrams(true));hydrateDiagrams();

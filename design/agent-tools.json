@@ -1,0 +1,1555 @@
+{
+  "api_version": "1",
+  "status": "design-only; no server implemented",
+  "offset_encoding": "utf-8-bytes",
+  "newline_convention": "LF",
+  "description": "Proposed MCP tool catalog. Native runtime validation enforces semantic rules in AGENT-INTERFACE.md in addition to these JSON Schemas. Annotations are hints, not authorization. Read responses and receipts describe the operation snapshot; later concurrent edits may already exist.",
+  "tools": [
+    {
+      "name": "editor_get_state",
+      "title": "get state",
+      "description": "Read authorized workspace and live-document summaries, effective profile permissions, and limits. Hidden documents and workspaces are omitted.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": true
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "connection_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "active_document_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "workspaces": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "workspace_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "permissions": {
+                          "type": "object",
+                          "properties": {
+                            "read": {
+                              "type": "boolean"
+                            },
+                            "edit_buffers": {
+                              "type": "boolean"
+                            },
+                            "save_files": {
+                              "type": "boolean"
+                            },
+                            "export": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "read",
+                            "edit_buffers",
+                            "save_files",
+                            "export"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "workspace_id",
+                        "name",
+                        "permissions"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "documents": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "document_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "workspace_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "path": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 4096,
+                          "description": "Workspace-relative path. Native service checks canonical containment, supported extension, and Windows path rules."
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "revision": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128,
+                          "description": "Opaque document revision, never an offset or filename."
+                        },
+                        "dirty": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "document_id",
+                        "workspace_id",
+                        "path",
+                        "title",
+                        "revision",
+                        "dirty"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "limits": {
+                    "type": "object",
+                    "properties": {
+                      "document_bytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 16777216
+                      },
+                      "read_chunk_bytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 16777216
+                      },
+                      "edits_per_batch": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "replacement_bytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 16777216
+                      }
+                    },
+                    "required": [
+                      "document_bytes",
+                      "read_chunk_bytes",
+                      "edits_per_batch",
+                      "replacement_bytes"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "connection_id",
+                  "active_document_id",
+                  "workspaces",
+                  "documents",
+                  "limits"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "APP_NOT_RUNNING",
+                      "SESSION_UNAVAILABLE",
+                      "ACCESS_DENIED",
+                      "PATH_OUTSIDE_WORKSPACE",
+                      "DOCUMENT_NOT_FOUND",
+                      "PATH_EXISTS",
+                      "REVISION_CONFLICT",
+                      "TEXT_MISMATCH",
+                      "INVALID_RANGE",
+                      "OVERLAPPING_EDITS",
+                      "LIMIT_EXCEEDED",
+                      "SELECTION_UNAVAILABLE",
+                      "DISK_CONFLICT",
+                      "SAVE_CONFLICT",
+                      "IO_ERROR",
+                      "REQUEST_ID_REUSED",
+                      "UNSUPPORTED_FORMAT",
+                      "EXPORT_FAILED"
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "current_revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "editor_open_document",
+      "title": "open document",
+      "description": "Open an existing Markdown file inside an authorized workspace, or reuse its live unsaved buffer. Does not activate a tab or move the caret. Requires read access.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": "Workspace-relative path. Native service checks canonical containment, supported extension, and Windows path rules."
+          }
+        },
+        "required": [
+          "workspace_id",
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": true
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "document_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096,
+                    "description": "Workspace-relative path. Native service checks canonical containment, supported extension, and Windows path rules."
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  },
+                  "dirty": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "document_id",
+                  "workspace_id",
+                  "path",
+                  "title",
+                  "revision",
+                  "dirty"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "APP_NOT_RUNNING",
+                      "SESSION_UNAVAILABLE",
+                      "ACCESS_DENIED",
+                      "PATH_OUTSIDE_WORKSPACE",
+                      "DOCUMENT_NOT_FOUND",
+                      "PATH_EXISTS",
+                      "REVISION_CONFLICT",
+                      "TEXT_MISMATCH",
+                      "INVALID_RANGE",
+                      "OVERLAPPING_EDITS",
+                      "LIMIT_EXCEEDED",
+                      "SELECTION_UNAVAILABLE",
+                      "DISK_CONFLICT",
+                      "SAVE_CONFLICT",
+                      "IO_ERROR",
+                      "REQUEST_ID_REUSED",
+                      "UNSUPPORTED_FORMAT",
+                      "EXPORT_FAILED"
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "current_revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "editor_create_document",
+      "title": "create document",
+      "description": "Create an unsaved Markdown buffer with a new proposed path. Refuse existing file/buffer paths. Requires edit_buffers; does not itself save to disk. Uses mutation deduplication.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": "Workspace-relative path. Native service checks canonical containment, supported extension, and Windows path rules."
+          },
+          "markdown": {
+            "type": "string",
+            "description": "Initial LF-normalized Markdown; maximum 16 MiB of UTF-8."
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Mutation deduplication key for the broker lifetime. Identical retries return the original receipt."
+          }
+        },
+        "required": [
+          "workspace_id",
+          "path",
+          "markdown",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": true
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "document_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  },
+                  "dirty": {
+                    "const": true
+                  },
+                  "saved": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "document_id",
+                  "revision",
+                  "dirty",
+                  "saved"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "APP_NOT_RUNNING",
+                      "SESSION_UNAVAILABLE",
+                      "ACCESS_DENIED",
+                      "PATH_OUTSIDE_WORKSPACE",
+                      "DOCUMENT_NOT_FOUND",
+                      "PATH_EXISTS",
+                      "REVISION_CONFLICT",
+                      "TEXT_MISMATCH",
+                      "INVALID_RANGE",
+                      "OVERLAPPING_EDITS",
+                      "LIMIT_EXCEEDED",
+                      "SELECTION_UNAVAILABLE",
+                      "DISK_CONFLICT",
+                      "SAVE_CONFLICT",
+                      "IO_ERROR",
+                      "REQUEST_ID_REUSED",
+                      "UNSUPPORTED_FORMAT",
+                      "EXPORT_FAILED"
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "current_revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "editor_get_document",
+      "title": "get document",
+      "description": "Read the current live Markdown and metadata. Ranges use zero-based UTF-8 bytes; end is exclusive. Nonzero start requires expected_revision to avoid mixing snapshots.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Opaque document revision, never an offset or filename."
+          },
+          "start_byte": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16777216,
+            "default": 0
+          },
+          "max_bytes": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 262144,
+            "default": 65536
+          }
+        },
+        "required": [
+          "document_id"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "start_byte": {
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "start_byte"
+              ]
+            },
+            "then": {
+              "required": [
+                "expected_revision"
+              ]
+            }
+          }
+        ]
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": true
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "document_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "workspace_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096,
+                    "description": "Workspace-relative path. Native service checks canonical containment, supported extension, and Windows path rules."
+                  },
+                  "revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  },
+                  "disk_revision": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Opaque disk fingerprint; null only for a file that has never been saved."
+                  },
+                  "dirty": {
+                    "type": "boolean"
+                  },
+                  "markdown": {
+                    "type": "string"
+                  },
+                  "start_byte": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 16777216
+                  },
+                  "end_byte": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 16777216
+                  },
+                  "total_bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 16777216
+                  },
+                  "next_start_byte": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "page_settings": {
+                    "type": "object",
+                    "properties": {
+                      "width_mm": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "height_mm": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "margins_mm": {
+                        "type": "object",
+                        "properties": {
+                          "top": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "right": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "bottom": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "left": {
+                            "type": "number",
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "top",
+                          "right",
+                          "bottom",
+                          "left"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "width_mm",
+                      "height_mm",
+                      "margins_mm"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "autosave_enabled": {
+                    "type": "boolean"
+                  },
+                  "autosave_blocked": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "document_id",
+                  "workspace_id",
+                  "path",
+                  "revision",
+                  "disk_revision",
+                  "dirty",
+                  "markdown",
+                  "start_byte",
+                  "end_byte",
+                  "total_bytes",
+                  "next_start_byte",
+                  "page_settings",
+                  "autosave_enabled",
+                  "autosave_blocked"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "APP_NOT_RUNNING",
+                      "SESSION_UNAVAILABLE",
+                      "ACCESS_DENIED",
+                      "PATH_OUTSIDE_WORKSPACE",
+                      "DOCUMENT_NOT_FOUND",
+                      "PATH_EXISTS",
+                      "REVISION_CONFLICT",
+                      "TEXT_MISMATCH",
+                      "INVALID_RANGE",
+                      "OVERLAPPING_EDITS",
+                      "LIMIT_EXCEEDED",
+                      "SELECTION_UNAVAILABLE",
+                      "DISK_CONFLICT",
+                      "SAVE_CONFLICT",
+                      "IO_ERROR",
+                      "REQUEST_ID_REUSED",
+                      "UNSUPPORTED_FORMAT",
+                      "EXPORT_FAILED"
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "current_revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "editor_get_selection",
+      "title": "get selection",
+      "description": "Read exact source-mapped selections without changing focus. Empty ranges mean no selection for this document. Unmappable rich selections return SELECTION_UNAVAILABLE.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "document_id"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": true
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "document_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  },
+                  "ranges": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "start_byte": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777216
+                        },
+                        "end_byte": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777216
+                        },
+                        "markdown": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "start_byte",
+                        "end_byte",
+                        "markdown"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "document_id",
+                  "revision",
+                  "ranges"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "APP_NOT_RUNNING",
+                      "SESSION_UNAVAILABLE",
+                      "ACCESS_DENIED",
+                      "PATH_OUTSIDE_WORKSPACE",
+                      "DOCUMENT_NOT_FOUND",
+                      "PATH_EXISTS",
+                      "REVISION_CONFLICT",
+                      "TEXT_MISMATCH",
+                      "INVALID_RANGE",
+                      "OVERLAPPING_EDITS",
+                      "LIMIT_EXCEEDED",
+                      "SELECTION_UNAVAILABLE",
+                      "DISK_CONFLICT",
+                      "SAVE_CONFLICT",
+                      "IO_ERROR",
+                      "REQUEST_ID_REUSED",
+                      "UNSUPPORTED_FORMAT",
+                      "EXPORT_FAILED"
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "current_revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "editor_apply_edits",
+      "title": "apply edits",
+      "description": "Apply one atomic, undoable batch against expected_revision. Validate all UTF-8 boundaries, expected text and nonoverlapping ranges before changing anything. All ranges address the pre-edit snapshot. Does not itself save; autosave obeys profile permissions and document settings.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Opaque document revision, never an offset or filename."
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Mutation deduplication key for the broker lifetime. Identical retries return the original receipt."
+          },
+          "edits": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 256,
+            "items": {
+              "type": "object",
+              "properties": {
+                "start_byte": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 16777216
+                },
+                "end_byte": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 16777216
+                },
+                "expected_text": {
+                  "type": "string"
+                },
+                "replacement": {
+                  "type": "string",
+                  "description": "Replacement Markdown. Total replacement payload across the batch is limited to 1 MiB of UTF-8."
+                }
+              },
+              "required": [
+                "start_byte",
+                "end_byte",
+                "expected_text",
+                "replacement"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "document_id",
+          "expected_revision",
+          "request_id",
+          "edits"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": true
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "document_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "previous_revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  },
+                  "revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  },
+                  "dirty": {
+                    "type": "boolean"
+                  },
+                  "saved": {
+                    "const": false
+                  },
+                  "autosave_blocked": {
+                    "type": "boolean"
+                  },
+                  "affected_ranges": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "start_byte": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777216
+                        },
+                        "end_byte": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16777216
+                        }
+                      },
+                      "required": [
+                        "start_byte",
+                        "end_byte"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "Ranges in the resulting revision, using UTF-8 bytes and exclusive end offsets."
+                  }
+                },
+                "required": [
+                  "document_id",
+                  "previous_revision",
+                  "revision",
+                  "dirty",
+                  "saved",
+                  "autosave_blocked",
+                  "affected_ranges"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "APP_NOT_RUNNING",
+                      "SESSION_UNAVAILABLE",
+                      "ACCESS_DENIED",
+                      "PATH_OUTSIDE_WORKSPACE",
+                      "DOCUMENT_NOT_FOUND",
+                      "PATH_EXISTS",
+                      "REVISION_CONFLICT",
+                      "TEXT_MISMATCH",
+                      "INVALID_RANGE",
+                      "OVERLAPPING_EDITS",
+                      "LIMIT_EXCEEDED",
+                      "SELECTION_UNAVAILABLE",
+                      "DISK_CONFLICT",
+                      "SAVE_CONFLICT",
+                      "IO_ERROR",
+                      "REQUEST_ID_REUSED",
+                      "UNSUPPORTED_FORMAT",
+                      "EXPORT_FAILED"
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "current_revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "editor_save_document",
+      "title": "save document",
+      "description": "Save the exact live revision to its assigned path. Both the expected buffer revision and disk baseline must match; refuse external changes. Requires save_files. No force-overwrite or Save As in v1.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Opaque document revision, never an offset or filename."
+          },
+          "expected_disk_revision": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Opaque disk fingerprint; null only for a file that has never been saved."
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Mutation deduplication key for the broker lifetime. Identical retries return the original receipt."
+          }
+        },
+        "required": [
+          "document_id",
+          "expected_revision",
+          "expected_disk_revision",
+          "request_id"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": true
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "document_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "saved_revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  },
+                  "disk_revision": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "dirty": {
+                    "const": false
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096,
+                    "description": "Workspace-relative path. Native service checks canonical containment, supported extension, and Windows path rules."
+                  }
+                },
+                "required": [
+                  "document_id",
+                  "saved_revision",
+                  "disk_revision",
+                  "dirty",
+                  "path"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "APP_NOT_RUNNING",
+                      "SESSION_UNAVAILABLE",
+                      "ACCESS_DENIED",
+                      "PATH_OUTSIDE_WORKSPACE",
+                      "DOCUMENT_NOT_FOUND",
+                      "PATH_EXISTS",
+                      "REVISION_CONFLICT",
+                      "TEXT_MISMATCH",
+                      "INVALID_RANGE",
+                      "OVERLAPPING_EDITS",
+                      "LIMIT_EXCEEDED",
+                      "SELECTION_UNAVAILABLE",
+                      "DISK_CONFLICT",
+                      "SAVE_CONFLICT",
+                      "IO_ERROR",
+                      "REQUEST_ID_REUSED",
+                      "UNSUPPORTED_FORMAT",
+                      "EXPORT_FAILED"
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "current_revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "editor_export_document",
+      "title": "export document",
+      "description": "Export a frozen revision to a new workspace-relative PDF or HTML file. Requires export permission. Honor document paper settings independently of screen layout; never overwrite a destination or open a print dialog.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "expected_revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Opaque document revision, never an offset or filename."
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Mutation deduplication key for the broker lifetime. Identical retries return the original receipt."
+          },
+          "format": {
+            "enum": [
+              "pdf",
+              "html"
+            ]
+          },
+          "output_path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": "Workspace-relative path. Native service checks canonical containment, supported extension, and Windows path rules."
+          }
+        },
+        "required": [
+          "document_id",
+          "expected_revision",
+          "request_id",
+          "format",
+          "output_path"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": true
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "document_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "exported_revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  },
+                  "output_path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096,
+                    "description": "Workspace-relative path. Native service checks canonical containment, supported extension, and Windows path rules."
+                  },
+                  "format": {
+                    "enum": [
+                      "pdf",
+                      "html"
+                    ]
+                  },
+                  "bytes_written": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "document_id",
+                  "exported_revision",
+                  "output_path",
+                  "format",
+                  "bytes_written"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "api_version": {
+                "const": "1"
+              },
+              "ok": {
+                "const": false
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "APP_NOT_RUNNING",
+                      "SESSION_UNAVAILABLE",
+                      "ACCESS_DENIED",
+                      "PATH_OUTSIDE_WORKSPACE",
+                      "DOCUMENT_NOT_FOUND",
+                      "PATH_EXISTS",
+                      "REVISION_CONFLICT",
+                      "TEXT_MISMATCH",
+                      "INVALID_RANGE",
+                      "OVERLAPPING_EDITS",
+                      "LIMIT_EXCEEDED",
+                      "SELECTION_UNAVAILABLE",
+                      "DISK_CONFLICT",
+                      "SAVE_CONFLICT",
+                      "IO_ERROR",
+                      "REQUEST_ID_REUSED",
+                      "UNSUPPORTED_FORMAT",
+                      "EXPORT_FAILED"
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "current_revision": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Opaque document revision, never an offset or filename."
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "api_version",
+              "ok",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

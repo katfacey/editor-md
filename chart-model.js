@@ -37,7 +37,7 @@ const ChartModel=(()=>{
     const hasHeader=header==='yes'||(header==='auto'&&rows[0].slice(1).every(cell=>number(cell)===null));
     const headings=hasHeader?rows.shift():['Category',...Array.from({length:width-1},(_,i)=>'Series '+(i+1))];
     if(!rows.length)throw new Error('Add at least one data row below the headings.');
-    const model={kind:'chart',type:'bar',title:'Chart from selected data',xLabel:headings[0]||'Category',yLabel:'Value',labels:[],series:headings.slice(1).map((name,i)=>({name:name||'Series '+(i+1),values:[]})),pieSeries:0};
+    const model={kind:'chart',type:'bar',title:'Imported data',xLabel:headings[0]||'Category',yLabel:'Value',labels:[],series:headings.slice(1).map((name,i)=>({name:name||'Series '+(i+1),values:[]})),pieSeries:0};
     rows.forEach((row,r)=>{model.labels.push(row[0]);row.slice(1).forEach((cell,c)=>{const n=number(cell);if(n===null)throw new Error('Row '+(r+(hasHeader?2:1))+', column '+(c+2)+' needs a number.');model.series[c].values.push(n)})});
     validate(model);return model;
   }

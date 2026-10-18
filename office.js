@@ -174,7 +174,32 @@ function exportDialog(){
   openDialog('Export document',`<div class="export-choices"><button data-export="markdown">${icon('code')}<span><strong>Markdown (.md)</strong><small>Portable text and Mermaid source. Rich text uses inline HTML.</small></span></button><button data-export="html">${icon('file')}<span><strong>Styled document (.html)</strong><small>Preserves text styling and static graph artwork.</small></span></button><button data-export="pdf">${icon('print')}<span><strong>PDF / Print</strong><small>Uses the system print dialog. Choose Save as PDF.</small></span></button></div><p class="format-note">Text color and page margins are included in PDF. Graphs become static artwork. Screen theme colors do not change printed page colors.</p>`);
   $$('[data-export]').forEach(b=>b.onclick=()=>{const type=b.dataset.export;$('#dialog').close();if(type==='pdf'){applyPage();window.print();return}if(type==='markdown'){download();return}const html=$('#paper').cloneNode(true);html.querySelectorAll('.graph-controls').forEach(e=>e.remove());html.querySelectorAll('.diagram-image').forEach(e=>e.removeAttribute('style'));const p={...defaultPage,...files[active].page};downloadFile(files[active].name.replace(/\.md$/i,'')+'.html','<!doctype html><meta charset="utf-8"><title>'+escapeHtml(files[active].name)+'</title><style>body{background:white;color:#28332f;font:12pt/1.7 Georgia;max-width:8.5in;margin:auto;padding:'+p.top+'in '+p.right+'in '+p.bottom+'in '+p.left+'in}h1{font-size:30pt}blockquote{border-left:3px solid #777;padding-left:20px}svg{max-width:100%;height:auto}table{border-collapse:collapse}td,th{border:1px solid #aaa;padding:8px}.graph-source{display:none}@media print{body{padding:0}}</style>'+html.innerHTML,'text/html');toast('Styled document exported')});
 }
+// Layout is a viewing preference; page metadata still controls print/export.
+let documentLayout='page';
+try{if(localStorage.getItem('editor-md-document-layout')==='web')documentLayout='web'}catch{}
+function syncLayoutControls(){
+  $$('[data-document-layout]').forEach(button=>{
+    const selected=button.dataset.documentLayout===documentLayout;
+    button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+  });
+  $$('[data-action="layout-page"],[data-action="layout-web"]').forEach(button=>{
+    const selected=button.dataset.action==='layout-'+documentLayout;
+    button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+  });
+}
+function setDocumentLayout(layout){
+  documentLayout=layout==='web'?'web':'page';
+  $('.document-area').classList.toggle('web-layout',documentLayout==='web');
+  try{localStorage.setItem('editor-md-document-layout',documentLayout)}catch{}
+  syncLayoutControls();
+}
+$$('[data-document-layout]').forEach(button=>{
+  button.onmousedown=e=>e.preventDefault();
+  button.onclick=()=>setDocumentLayout(button.dataset.documentLayout);
+});
 Object.assign(officeActions,{
+  'layout-page':()=>setDocumentLayout('page'),
+  'layout-web':()=>setDocumentLayout('web'),
   appearance:appearanceDialog,
   'font-smaller':()=>setFontSize(currentFontSize-1),
   'font-larger':()=>setFontSize(currentFontSize+1),
@@ -196,4 +221,4 @@ window.addEventListener('beforeunload',e=>{if(JSON.stringify(files)!==lastSavedW
 $('#export').onclick=exportDialog;
 document.addEventListener('documentchange',applyPage);
 $('#dialog').addEventListener('close',()=>{$('#dialog').classList.remove('graph-studio')});
-applyAppearance();applyPage();ribbon('Home');updateSaveState();
+applyAppearance();applyPage();setDocumentLayout(documentLayout);ribbon('Home');updateSaveState();

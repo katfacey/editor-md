@@ -24,12 +24,12 @@ Markdown remains the portable text layer. Rich presentation includes font family
 | Character formatting | Font family, exact point size, increase/decrease, color, highlight, emphasis, sub/superscript, clear direct formatting | Dropdown with selection synchronization and Mixed state, A−/A+, script controls and distinct highlighter/font-color symbols; broader character dialog planned |
 | Paragraph formatting | Left/center/right/justify, indent, tabs, line/paragraph spacing, lists, numbering, borders, keep-with-next | Core ribbon illustration; paragraph dialog planned |
 | Styles | Paragraph, character, list, and page styles; create/update styles; direct-formatting indicators | Heading examples; style manager planned |
-| Page design | Paper size, orientation, individual margins, gutter, mirrored pages, sections, columns | Size/orientation/margin dialog works in prototype; advanced layouts planned |
+| Page design | Paper size, orientation, individual margins, gutter, mirrored pages, sections, columns; Page and Web screen layouts | Size/orientation/margin dialog and independent Page/Web view controls work in prototype; true pagination and advanced layouts planned |
 | Long documents | Outline navigator, bookmarks, TOC, cross-references, foot/endnotes, citations, indexes | Basic outline/navigation; reliable reference model planned |
 | Headers and pagination | Header/footer sections, automatic page numbers, first-page differences, page/section breaks | Visual sample footer; true pagination planned |
 | Tables | Insert/edit rows/columns, merge/split, widths, alignment, borders, repeated headers | Insert example; table editing panel planned |
 | Images and objects | Local images, captions, crop/resize, anchoring, wrapping, equations, symbols | Image insertion preview; richer object tools planned |
-| Charts and diagrams | Data-driven charts, flowcharts, Mermaid source, graph manager, re-editing, accessible descriptions | Multi-series data grid; CSV/TSV/Markdown-table import; right-click selected-data chart creation; visual flow nodes/shapes/connections/branches; undo/redo; additional source templates; portable visual-model round-trip |
+| Charts and diagrams | Data-driven charts, flowcharts, Mermaid source, graph manager, re-editing, accessible descriptions | Multi-series data grid; manual CSV/TSV/Markdown-table import; visual flow nodes/shapes/connections/branches; undo/redo; additional source templates; portable visual-model round-trip. Selected-data chart creation removed after usability feedback. |
 | Review | Spell/grammar checks, dictionary, autocorrect, tracked changes, anchored comments, compare documents | Browser spellcheck, session comments; review engine planned |
 | Search | Find/replace, regular expressions, document/workspace scope, navigation through matches | Basic document search; replace and advanced search planned |
 | Files and recovery | Open/save/save-as, recent files, autosave, crash recovery, external-change detection, encodings | File-tab autosave toggle with actual browser-storage gating and manual Save now/Ctrl+S; unsaved indicator and close protection; native file services planned |
@@ -37,6 +37,7 @@ Markdown remains the portable text layer. Rich presentation includes font family
 | Workspace | Templates, archive, settings, document tabs, custom panels, command palette | Partial visual shell; template/archive functionality planned |
 | Git | Repository configuration, status, diff, commit, history, pull/push, conflict resolution | Source repository only; app integration planned |
 | Appearance and access | Independent light/dark main and accent colors, readable contrast, scalable controls, keyboard/screen reader support | Per-mode appearance customization; native accessibility audit planned |
+| Agent access | Local MCP server, live document reads, source-mapped selection, revision-checked edits, undo, explicit save/export and workspace permissions | [Rust interface design](AGENT-INTERFACE.md) and [machine-readable tool catalog](agent-tools.json) prepared; implementation belongs to the native application |
 
 ## Immediate visual decisions
 
@@ -50,7 +51,7 @@ Markdown remains the portable text layer. Rich presentation includes font family
 - Keep font color separate from highlighting and interface accent colors.
 - Page setup includes margin presets and four explicit measurements with a layout preview.
 - Graph studio is a resizable-window concept with an editable data grid, flowchart object properties, live clickable preview, source editor, validation, history, and insert/update actions. Flowcharts support process/rounded/decision/start-end/database/subprocess nodes; directed/plain/dashed connections; labels; layout direction; and one-click decision branches. Additional Mermaid diagram families start from source templates. The prototype uses a modal; the native app may use a floating window or dockable editor.
-- Creating a chart from selected data must preserve the original data. Changing chart type must retain all series. Pie charts explicitly choose one numeric series. Converting selected data to a flowchart turns its categories/values into steps.
+- Import chart data explicitly inside Graph studio. Changing chart type must retain all series. Pie charts explicitly choose one numeric series. Chart-from-selection is no longer part of the prototype.
 - The visual model travels in a Mermaid comment so reopening exported Markdown restores the forms. Edited custom source is preserved as source whenever the model cannot represent it; never overwrite custom syntax with stale metadata.
 - Autosave is a visible File-tab preference. Turning it off must stop automatic persistence while preserving explicit Save. The native app will use atomic disk writes, recovery snapshots, and clear errors; the prototype uses browser storage.
 

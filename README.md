@@ -15,6 +15,7 @@ Mermaid is installed locally so diagram rendering works offline after installati
 ## Try it
 
 - Edit the document directly, or switch between Write, Split, and Source views.
+- Switch Page / Web above the document or from View. Page shows the paper canvas and document margins; Web reflows across the available editing width. This preference works independently of Write/Split/Source, is remembered locally, and leaves print settings unchanged.
 - Explore the Home, Insert, Layout, References, Review, and View ribbons.
 - Apply headings, emphasis, lists, quotes, tables, links, and code blocks.
 - Navigate files, create a document, or search document names and content with Ctrl+K.
@@ -26,7 +27,7 @@ Mermaid is installed locally so diagram rendering works offline after installati
 - Choose paper size/orientation and individual margins from Layout → Page setup.
 - Create or edit charts in Insert → Graph studio. The spreadsheet-style data grid supports multiple series, row/series insertion/removal, labels, axis titles, and selecting a series for pie charts. Switching chart types preserves the data.
 - Build flowcharts with clickable preview nodes, editable labels/shapes, labeled connections, direction controls, and a Decision + Yes / No branches action. The studio includes undo/redo and templates for sequence, Gantt, mind-map, state, class, and entity-relationship diagrams, with source editing for those additional types.
-- Select table/CSV/TSV data and right-click → Make chart from data. Choose the chart type in the studio; inserting the chart keeps the original table. The same action is under Insert → Chart from selection and the keyboard context menu (Shift+F10).
+- Use Graph studio → Import data to paste CSV, TSV or a Markdown table. Chart-from-selection and its custom context menu have been removed; the visual chart/flowchart editors and manual import remain available.
 - Toggle Autosave file under File. With autosave off, edits remain in memory and the save indicator shows unsaved changes; Save now or Ctrl+S persists them. In this prototype, persistence is browser storage. The future Windows app will autosave actual files.
 - Save changes in browser storage with Ctrl+S; export a `.md` copy from Export.
 
@@ -38,6 +39,7 @@ Export offers Markdown, styled HTML with static graph artwork, and PDF through t
 
 See [the design reference](design/DESIGN.md) for layout, colors, behavior, and a proposed native-app feature map.
 See [the Writer-inspired feature roadmap](design/FEATURES.md) for the broader office-editor scope and the Markdown/rich document boundary.
+See [the Rust agent interface design](design/AGENT-INTERFACE.md) and [proposed MCP tool schemas](design/agent-tools.json) for live-buffer access, revision-checked edits, save/export behavior and desktop integration. These are design artifacts; no MCP server is running in this prototype.
 
 ## Files
 
@@ -49,7 +51,7 @@ See [the Writer-inspired feature roadmap](design/FEATURES.md) for the broader of
 | `app.js` | Prototype editing and interface interactions |
 | `office.js`, `office.css` | Appearance, font controls, page setup, and export presentation |
 | `chart-model.js` | Data import, chart/flowchart model, validation, and portable source round-trip |
-| `graph-studio.js`, `editing.css` | Visual graph builder, selected-data context menu, and expanded editing controls |
+| `graph-studio.js`, `editing.css` | Visual graph builder, Page/Web layout, and expanded editing controls |
 | `serve.cjs` | Dependency-free local preview server |
 | `design/` | Comparison image and implementation reference |
 
@@ -57,4 +59,4 @@ The project has no chosen open-source license yet.
 
 ## Validation
 
-`npm run check` checks JavaScript syntax. `npm test` covers data parsing, invalid data, multiple series, branching-flowchart round-trips, safe node deletion, and preserving custom source edits. Browser checks cover selected/mixed font sizes, script formatting, autosave off/manual save, flowchart node editing/branching/undo, templates, and right-click chart creation from a real table without deleting its data.
+`npm run check` checks JavaScript syntax. `npm test` covers data parsing, invalid data, multiple series, branching-flowchart round-trips, safe node deletion, and preserving custom source edits. Browser checks cover selected/mixed font sizes, script formatting, autosave off/manual save, flowchart editing, templates, and Page/Web layout switching independently of editing mode. The Rust MCP contract has no runtime implementation to test yet.
