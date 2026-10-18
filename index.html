@@ -31,6 +31,7 @@
       <div class="canvas-top"><div class="breadcrumbs">Workspace <span>/</span> Writing <span>/</span> <strong id="breadcrumb">The thoughtful workspace.md</strong></div><div class="layout-switch" role="group" aria-label="Document layout"><button data-document-layout="page" aria-label="Page layout" aria-pressed="true" title="Page layout — paper and margins">Page</button><button data-document-layout="web" aria-label="Web layout" aria-pressed="false" title="Web layout — continuous, full-width document">Web</button></div><div class="mode-switch" aria-label="Editor mode"><button data-mode="write" class="selected">Write</button><button data-mode="split">Split</button><button data-mode="source">Source</button></div><button id="focus" aria-label="Toggle focus mode" title="Focus mode" data-icon="expand"></button></div>
       <div class="ruler" aria-hidden="true"><span>⌜</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>⌝</span></div>
       <div class="canvas-scroll" id="canvas-scroll">
+        <div class="empty-document" id="empty-document" hidden><span data-icon="file"></span><h2>A little room for your next idea.</h2><p>Open a document from the workspace or create a fresh page.</p><button class="primary" id="empty-create">New document</button></div>
         <div class="editing-surface" id="editing-surface"><textarea id="source" aria-label="Markdown source" spellcheck="false"></textarea><article class="paper" id="paper" aria-label="Document editor" contenteditable="true" spellcheck="true"></article></div>
         <div class="page-caption">A clear mind starts with a clear page.</div>
       </div>
@@ -46,6 +47,8 @@
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <dialog id="dialog"><div class="dialog-head"><h2 id="dialog-title">Find anything</h2><button id="close-dialog" aria-label="Close dialog">✕</button></div><div id="dialog-content"></div></dialog>
+<script src="document-state.js"></script>
+<script src="workspace-ui.js"></script>
 <script src="app.js"></script>
 <script src="office.js"></script>
 <script src="chart-model.js"></script>

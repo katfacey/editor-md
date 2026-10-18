@@ -37,6 +37,12 @@ Current references: [light Page layout](page-layout.png), [Letter setup defaults
 
 Local files and user control are central. Show actual save state and actionable failures. Distinguish saving, exporting, and Git synchronization. Keep Git commands separate from ordinary document saving, and explain authentication or merge conflicts when they occur.
 
+Document tabs have separate open/select and close buttons. A dirty tab prompts Save / Don’t save / Cancel; clean tabs close directly. Save applies to that document without saving other dirty tabs. Failed saves leave the dialog and tab open. Don’t save restores the last saved document, or discards a never-saved draft. Closing all tabs shows a blank workspace with a New document action; saved documents remain available in the navigator.
+
+File → Save as template stores a separate snapshot with content, rich formatting and page setup. Selecting a Templates entry starts a new document. The source document retains its own save state. Archive is the user’s recent Markdown history: created, edited and opened documents, deduplicated by stable identity, newest first, with activity timestamps and a 50-entry limit. Opening a recent entry reuses its live buffer or reopens its tab. The prototype stores both libraries in browser storage; native disk paths and filesystem integration remain Rust work.
+
+Current references: [tab save prompt](close-tab-save.png) and [Templates / Archive library](templates-archive.png).
+
 The comparison view intentionally scales two 1440 × 1040 desktop shells together so the layouts are identical. Use the full-size editor for readability and interaction. At narrower full-size widths, hide the inspector first, then the file navigator, and retain essential editing commands.
 
 ## Feature map for the Rust application
@@ -50,7 +56,7 @@ The comparison view intentionally scales two 1440 × 1040 desktop shells togethe
 | Review | Anchored comments, diagnostics, spelling, word count | Session comments, browser spelling, live basic statistics |
 | Output | Markdown, HTML, accessible PDF, print layouts | Markdown download and browser print |
 | Accessibility | Full keyboard navigation, semantic controls, scalable UI, screen-reader support | Labeled controls and native browser focus behavior |
-| Workspace | Templates, archive, workspace configuration | Planned placeholders |
+| Workspace | Reusable templates, recent-file Archive, workspace configuration | Persistent template snapshots and recent Markdown entries; advanced workspace settings planned |
 | Git | Repository settings, status, diff, commit, push/pull | Future implementation; no simulated sync controls |
 | Agents | Local MCP adapter to shared Rust document commands; scoped access, revision checks, undo and guarded save/export | [Interface design](AGENT-INTERFACE.md) and [tool schemas](agent-tools.json); no runtime server yet |
 

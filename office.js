@@ -141,6 +141,7 @@ function fontColorDialog(){
 const defaultPage={size:'Letter',orientation:'portrait',top:1,bottom:1,left:1,right:1};
 const pageSizes={Letter:[8.5,11],A4:[8.2677,11.6929],Legal:[8.5,14]};
 function applyPage(){
+  if(active<0)return;
   const page={...defaultPage,...files[active].page};
   let [width,height]=pageSizes[page.size]||pageSizes.Letter;
   if(page.orientation==='landscape')[width,height]=[height,width];
@@ -199,6 +200,7 @@ $$('[data-document-layout]').forEach(button=>{
   button.onclick=()=>setDocumentLayout(button.dataset.documentLayout);
 });
 Object.assign(officeActions,{
+  'save-template':saveAsTemplate,
   appearance:appearanceDialog,
   'font-smaller':()=>setFontSize(currentFontSize-1),
   'font-larger':()=>setFontSize(currentFontSize+1),
@@ -214,9 +216,9 @@ function mountAutosaveControl(){
   $('#ribbon').append(section);
   const field=$('#autosave-toggle');field.checked=autosaveEnabled;
   const describe=()=>$('#autosave-description').textContent=autosaveEnabled?'On · save edits automatically':'Off · use Save now or Ctrl+S';describe();
-  field.onchange=()=>{autosaveEnabled=field.checked;try{localStorage.setItem('editor-md-autosave',autosaveEnabled?'on':'off')}catch{}if(autosaveEnabled)save();else updateSaveState();describe();toast(autosaveEnabled?'Autosave enabled':'Autosave off. Use Save now or Ctrl+S.')};
+  field.onchange=()=>{autosaveEnabled=field.checked;try{localStorage.setItem('editor-md-autosave',autosaveEnabled?'on':'off')}catch{}if(autosaveEnabled)save({all:true});else updateSaveState();describe();toast(autosaveEnabled?'Autosave enabled':'Autosave off. Use Save now or Ctrl+S.')};
 }
-window.addEventListener('beforeunload',e=>{if(JSON.stringify(files)!==lastSavedWorkspace){e.preventDefault();e.returnValue=''}});
+window.addEventListener('beforeunload',e=>{if(documentState.anyDirty()){e.preventDefault();e.returnValue=''}});
 $('#export').onclick=exportDialog;
 document.addEventListener('documentchange',applyPage);
 $('#dialog').addEventListener('close',()=>{$('#dialog').classList.remove('graph-studio')});
