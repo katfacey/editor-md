@@ -1,0 +1,29 @@
+[package]
+name = "editor-md"
+version = "0.1.0-beta.1"
+description = "Editor, MD — a local Markdown writing workspace"
+authors = ["Kat Facey"]
+edition = "2021"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rfd = "0.15"
+sha2 = "0.10"
+tempfile = "3"
+uuid = { version = "1", features = ["v4"] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

@@ -12,7 +12,7 @@ let comments=[{name:'Kat Facey',text:'This feels like the heart of the piece. Co
 const escapeHtml=s=>s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 function sanitize(html){
  const t=document.createElement('template');t.innerHTML=html;
- const allowed=new Set(['DIV','P','SPAN','H1','H2','H3','H4','BR','HR','STRONG','B','EM','I','U','S','STRIKE','MARK','BLOCKQUOTE','UL','OL','LI','LABEL','INPUT','A','CODE','PRE','TABLE','THEAD','TBODY','TR','TD','TH','FONT','SUP','SUB','IMG','FIGURE','FIGCAPTION','BUTTON']);
+ const allowed=new Set(['DIV','P','SPAN','H1','H2','H3','H4','H5','H6','BR','HR','STRONG','B','EM','I','U','S','STRIKE','DEL','MARK','BLOCKQUOTE','UL','OL','LI','LABEL','INPUT','A','CODE','PRE','TABLE','THEAD','TBODY','TR','TD','TH','FONT','SUP','SUB','IMG','FIGURE','FIGCAPTION','BUTTON']);
  t.content.querySelectorAll('*').forEach(e=>{
   if(!allowed.has(e.tagName)){e.remove();return}
   const style=e.style, safeStyle={};

@@ -2,6 +2,10 @@
 
 ## Product boundary
 
+The first desktop beta is now available as a portable Windows executable built with Rust and Tauri 2, with the approved HTML/CSS/JavaScript interface embedded inside it. It uses real local files and native Windows dialogs, bundles fonts/diagrams, and requires the shared WebView2 runtime.
+
+The status column below records the original browser design prototype. See the [project README](../README.md) for implemented desktop file services, recovery, usage, and beta limitations. This roadmap retains the broader Writer-inspired goals rather than claiming that every feature is finished.
+
 The final application is a standalone **Windows `.exe` written in Rust**, not a hosted website. It must launch directly, open/save real local files, work offline, integrate with Windows dialogs and shortcuts, and package its UI, fonts, diagram renderer, and printing resources. A local server and Node.js are development tools for this visual prototype only.
 
 Take inspiration from LibreOffice/OpenOffice Writer's depth and discoverability, rather than duplicating every control at once. A command should have a discoverable menu entry, appropriate shortcut, relevant toolbar/ribbon affordance, and help text. Native windows should support resizing, keyboard navigation, and dockable panels.

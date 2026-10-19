@@ -20,6 +20,29 @@ function readAppearance(){
   }catch{}
 }
 readAppearance();
+const mascotDefaults={visible:true,opacity:20};
+let mascotSettings={...mascotDefaults};
+function readMascotSettings(){
+  mascotSettings={...mascotDefaults};
+  try{
+    const value=JSON.parse(localStorage.getItem('editor-md-mascot-v1'));
+    if(typeof value?.visible==='boolean')mascotSettings.visible=value.visible;
+    if(typeof value?.opacity==='number'&&Number.isFinite(value.opacity))mascotSettings.opacity=Math.min(100,Math.max(0,Math.round(value.opacity)));
+  }catch{}
+}
+function applyMascot(){
+  document.body.classList.toggle('show-mascot',mascotSettings.visible);
+  document.body.style.setProperty('--mascot-opacity',String(mascotSettings.opacity/100));
+  const toggle=$('#show-mascot'),slider=$('#mascot-opacity'),output=$('#mascot-opacity-value');
+  if(toggle)toggle.checked=mascotSettings.visible;
+  if(slider){slider.value=mascotSettings.opacity;slider.disabled=!mascotSettings.visible;slider.setAttribute('aria-valuetext',mascotSettings.opacity+'%')}
+  if(output)output.textContent=mascotSettings.opacity+'%';
+}
+function saveMascotSettings(){
+  try{localStorage.setItem('editor-md-mascot-v1',JSON.stringify(mascotSettings))}catch{}
+  applyMascot();
+}
+readMascotSettings();applyMascot();
 function mix(a,b,weight){
   const rgb=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16));
   return '#'+rgb(a).map((n,i)=>Math.round(n*(1-weight)+rgb(b)[i]*weight).toString(16).padStart(2,'0')).join('');
@@ -52,9 +75,20 @@ function appearanceDialog(){
     <div class="appearance-modes"><button data-edit-mode="light">☀ Light</button><button data-edit-mode="dark">☾ Dark</button></div>
     <div class="appearance-preview"><span class="preview-rail"></span><div><span class="preview-line"></span><span class="preview-line short"></span><span class="preview-accent">Editor, MD</span></div></div>
     <div class="field-grid"><label>Main color<input id="main-color" type="color"><input id="main-hex" aria-label="Main color hex" spellcheck="false" maxlength="7"></label><label>Accent color<input id="accent-color" type="color"><input id="accent-hex" aria-label="Accent color hex" spellcheck="false" maxlength="7"></label></div>
-    <div class="dialog-actions"><button id="reset-colors">Restore this mode’s defaults</button><button class="primary" id="done-colors">Done</button></div>`);
+    <fieldset class="mascot-settings"><legend>App background</legend>
+      <label class="mascot-toggle" for="show-mascot"><input id="show-mascot" type="checkbox">Show mascot</label>
+      <div class="mascot-opacity-heading"><label for="mascot-opacity">Opacity</label><output id="mascot-opacity-value" for="mascot-opacity">20%</output></div>
+      <input id="mascot-opacity" type="range" min="0" max="100" step="1" value="20" aria-describedby="mascot-help">
+      <p id="mascot-help">One background fits the entire app as the window resizes. Shared by light and dark mode; document pages cover it.</p>
+    </fieldset>
+    <p class="appearance-reset-status" id="appearance-reset-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    <div class="dialog-actions"><button id="reset-appearance" aria-describedby="appearance-reset-status">Restore defaults</button><button class="primary" id="done-colors">Done</button></div>`);
   let editing=current;
+  function resetHint(){
+    $('#appearance-reset-status').textContent='Restores this mode’s colors and the shared mascot settings (shown at 20%).';
+  }
   function paint(){
+    resetHint();
     $$('[data-edit-mode]').forEach(b=>b.classList.toggle('selected',b.dataset.editMode===editing));
     $('#main-color').value=appearance[editing].main;$('#accent-color').value=appearance[editing].accent;
     $('#main-hex').value=appearance[editing].main;$('#accent-hex').value=appearance[editing].accent;
@@ -71,11 +105,27 @@ function appearanceDialog(){
     field.oninput=e=>{if(/^#[0-9a-f]{6}$/i.test(e.target.value)){appearance[editing][key]=e.target.value;persist()}};
     field.onchange=e=>{if(!/^#[0-9a-f]{6}$/i.test(e.target.value)){toast('Use a six-digit hex color, such as #f0a15a');paint()}};
   }
-  $('#reset-colors').onclick=()=>{appearance[editing]=structuredClone(appearanceDefaults[editing]);persist()};
+  $('#reset-appearance').onclick=()=>{
+    const defaults=appearanceDefaults[editing];
+    const unchanged=appearance[editing].main===defaults.main&&appearance[editing].accent===defaults.accent&&mascotSettings.visible===mascotDefaults.visible&&mascotSettings.opacity===mascotDefaults.opacity;
+    appearance[editing]=structuredClone(defaults);
+    mascotSettings={...mascotDefaults};
+    persist();saveMascotSettings();
+    const mode=editing==='dark'?'Dark':'Light';
+    $('#appearance-reset-status').textContent=unchanged
+      ?mode+' mode is already using its default colors, with the shared mascot shown at 20%.'
+      :mode+' mode colors restored. Shared mascot reset: shown at 20%.';
+  };
+  $('#show-mascot').onchange=e=>{mascotSettings.visible=e.target.checked;saveMascotSettings();resetHint()};
+  $('#mascot-opacity').oninput=e=>{mascotSettings.opacity=Number(e.target.value);saveMascotSettings();resetHint()};
+  applyMascot();
   $('#done-colors').onclick=()=>$('#dialog').close();paint();
 }
 document.addEventListener('themechange',applyAppearance);
-window.addEventListener('storage',e=>{if(e.key==='editor-md-appearance-v1'){appearance=structuredClone(appearanceDefaults);readAppearance();applyAppearance()}});
+window.addEventListener('storage',e=>{
+  if(e.key==='editor-md-appearance-v1'){appearance=structuredClone(appearanceDefaults);readAppearance();applyAppearance()}
+  if(e.key==='editor-md-mascot-v1'||e.key===null){readMascotSettings();applyMascot()}
+});
 $('#appearance').onclick=appearanceDialog;
 
 let currentFontSize=12;

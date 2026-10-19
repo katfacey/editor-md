@@ -3,3 +3,10 @@ target/
 .DS_Store
 Thumbs.db
 *.log
+.tools/
+dist/
+release/
+EditorMD-data/
+*.blend1
+src-tauri/gen/
+EditorMD-smoke/

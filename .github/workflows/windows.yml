@@ -1,0 +1,43 @@
+name: Windows desktop beta
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Rust toolchain
+        run: rustup default stable-x86_64-pc-windows-msvc
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build:ui
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - run: cargo build --manifest-path src-tauri/Cargo.toml --release --locked
+      - name: Native smoke test
+        shell: pwsh
+        run: |
+          $process=Start-Process -FilePath '.\src-tauri\target\release\editor-md.exe' -ArgumentList '--smoke-test' -WindowStyle Hidden -PassThru
+          if(!$process.WaitForExit(60000)){Stop-Process -Id $process.Id;throw 'Native smoke test timed out.'}
+          $result=Get-Content '.\src-tauri\target\release\EditorMD-smoke\smoke-result.json' -Raw | ConvertFrom-Json
+          if(!$result.ok){throw ($result | ConvertTo-Json)}
+          $result | ConvertTo-Json
+      - run: node scripts/collect-notices.mjs
+      - run: powershell -File scripts/package-release.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Editor-MD-windows-x64-beta
+          path: |
+            release/*.exe
+            release/*.zip
+            release/*.txt
