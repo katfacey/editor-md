@@ -43,6 +43,46 @@ function saveMascotSettings(){
   applyMascot();
 }
 readMascotSettings();applyMascot();
+const interfaceDefaults={zoom:100,initials:'KF'};
+let interfaceSettings={...interfaceDefaults};
+function readInterfaceSettings(){
+  interfaceSettings={...interfaceDefaults};
+  try{
+    const value=JSON.parse(localStorage.getItem('editor-md-interface-v1'));
+    if(value&&ViewSettings.interfaceZoom(value.zoom)!==null)interfaceSettings.zoom=Number(value.zoom);
+    if(value&&ViewSettings.initials(value.initials??'')!==null)interfaceSettings.initials=ViewSettings.initials(value.initials);
+  }catch{}
+}
+function applyInterfaceSettings(){
+  document.body.style.setProperty('--ui-scale',String(interfaceSettings.zoom/100));
+  $('#profile').textContent=interfaceSettings.initials;
+  $('#profile').setAttribute('aria-label','Edit your initials ('+interfaceSettings.initials+')');
+  const range=$('#ui-zoom'),number=$('#ui-zoom-number'),output=$('#ui-zoom-value'),initials=$('#profile-initials');
+  if(range)range.value=interfaceSettings.zoom;
+  if(number)number.value=interfaceSettings.zoom;
+  if(output)output.textContent=interfaceSettings.zoom+'%';
+  if(initials)initials.value=interfaceSettings.initials;
+  if($('#footnote-signature-label'))$('#footnote-signature-label').textContent='Append my initials (-'+interfaceSettings.initials+')';
+}
+function saveInterfaceSettings(){
+  try{localStorage.setItem('editor-md-interface-v1',JSON.stringify(interfaceSettings))}catch{}
+  applyInterfaceSettings();
+}
+function setInterfaceZoom(value){
+  const zoom=ViewSettings.interfaceZoom(value);if(zoom===null)return false;
+  interfaceSettings.zoom=zoom;saveInterfaceSettings();return true;
+}
+function setProfileInitials(value){
+  const initials=ViewSettings.initials(value);if(initials===null)return false;
+  interfaceSettings.initials=initials;saveInterfaceSettings();return true;
+}
+function profileDialog(){
+  openDialog('Your initials','<form id="profile-form"><label for="profile-initials">Initials (1–4 characters)</label><input id="profile-initials" maxlength="8" autocomplete="off"><p>Shown in the top-right corner. This preference is shared by light and dark mode.</p><p id="profile-error" class="validation-error" role="alert"></p><div class="dialog-actions"><button id="cancel-profile" type="button">Cancel</button><button class="primary" type="submit">Save initials</button></div></form>');
+  applyInterfaceSettings();
+  $('#profile-form').onsubmit=event=>{event.preventDefault();if(!setProfileInitials($('#profile-initials').value)){$('#profile-error').textContent='Enter 1–4 non-space characters.';return}$('#dialog').close()};
+  $('#cancel-profile').onclick=()=>$('#dialog').close();$('#profile-initials').focus();$('#profile-initials').select();
+}
+readInterfaceSettings();applyInterfaceSettings();$('#profile').onclick=profileDialog;
 function mix(a,b,weight){
   const rgb=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16));
   return '#'+rgb(a).map((n,i)=>Math.round(n*(1-weight)+rgb(b)[i]*weight).toString(16).padStart(2,'0')).join('');
@@ -75,6 +115,13 @@ function appearanceDialog(){
     <div class="appearance-modes"><button data-edit-mode="light">☀ Light</button><button data-edit-mode="dark">☾ Dark</button></div>
     <div class="appearance-preview"><span class="preview-rail"></span><div><span class="preview-line"></span><span class="preview-line short"></span><span class="preview-accent">Editor, MD</span></div></div>
     <div class="field-grid"><label>Main color<input id="main-color" type="color"><input id="main-hex" aria-label="Main color hex" spellcheck="false" maxlength="7"></label><label>Accent color<input id="accent-color" type="color"><input id="accent-hex" aria-label="Accent color hex" spellcheck="false" maxlength="7"></label></div>
+    <fieldset class="interface-settings"><legend>Interface · shared across modes</legend>
+      <div class="mascot-opacity-heading"><label for="ui-zoom">UI zoom</label><output id="ui-zoom-value" for="ui-zoom">100%</output></div>
+      <div class="interface-zoom-row"><input id="ui-zoom" type="range" min="50" max="200" step="5" value="100"><input id="ui-zoom-number" aria-label="UI zoom percentage" type="number" min="50" max="200" step="any" value="100"><button id="reset-ui-zoom" type="button">100%</button></div>
+      <p>Resize toolbars, panels, and dialogs in both modes. Document zoom and printed page size stay separate.</p>
+      <label for="profile-initials">Your initials (1–4 characters)</label><input id="profile-initials" maxlength="8" autocomplete="off">
+      <p id="interface-error" class="validation-error" role="alert"></p>
+    </fieldset>
     <fieldset class="mascot-settings"><legend>App background</legend>
       <label class="mascot-toggle" for="show-mascot"><input id="show-mascot" type="checkbox">Show mascot</label>
       <div class="mascot-opacity-heading"><label for="mascot-opacity">Opacity</label><output id="mascot-opacity-value" for="mascot-opacity">20%</output></div>
@@ -85,7 +132,7 @@ function appearanceDialog(){
     <div class="dialog-actions"><button id="reset-appearance" aria-describedby="appearance-reset-status">Restore defaults</button><button class="primary" id="done-colors">Done</button></div>`);
   let editing=current;
   function resetHint(){
-    $('#appearance-reset-status').textContent='Restores this mode’s colors and the shared mascot settings (shown at 20%).';
+    $('#appearance-reset-status').textContent='Restores this mode’s colors, shared mascot (shown at 20%), and UI zoom (100%). Your initials stay unchanged.';
   }
   function paint(){
     resetHint();
@@ -107,24 +154,30 @@ function appearanceDialog(){
   }
   $('#reset-appearance').onclick=()=>{
     const defaults=appearanceDefaults[editing];
-    const unchanged=appearance[editing].main===defaults.main&&appearance[editing].accent===defaults.accent&&mascotSettings.visible===mascotDefaults.visible&&mascotSettings.opacity===mascotDefaults.opacity;
+    const unchanged=appearance[editing].main===defaults.main&&appearance[editing].accent===defaults.accent&&mascotSettings.visible===mascotDefaults.visible&&mascotSettings.opacity===mascotDefaults.opacity&&interfaceSettings.zoom===interfaceDefaults.zoom;
     appearance[editing]=structuredClone(defaults);
     mascotSettings={...mascotDefaults};
-    persist();saveMascotSettings();
+    interfaceSettings.zoom=interfaceDefaults.zoom;
+    persist();saveMascotSettings();saveInterfaceSettings();
     const mode=editing==='dark'?'Dark':'Light';
     $('#appearance-reset-status').textContent=unchanged
-      ?mode+' mode is already using its default colors, with the shared mascot shown at 20%.'
-      :mode+' mode colors restored. Shared mascot reset: shown at 20%.';
+      ?mode+' mode is already at its defaults: mascot shown at 20%, UI zoom at 100%.'
+      :mode+' mode colors restored. Shared mascot shown at 20%, UI zoom reset to 100%.';
   };
   $('#show-mascot').onchange=e=>{mascotSettings.visible=e.target.checked;saveMascotSettings();resetHint()};
   $('#mascot-opacity').oninput=e=>{mascotSettings.opacity=Number(e.target.value);saveMascotSettings();resetHint()};
-  applyMascot();
+  $('#ui-zoom').oninput=event=>{setInterfaceZoom(event.target.value);resetHint()};
+  $('#ui-zoom-number').onchange=event=>{if(!setInterfaceZoom(event.target.value)){$('#interface-error').textContent='UI zoom must be between 50% and 200%.';applyInterfaceSettings()}else $('#interface-error').textContent='';resetHint()};
+  $('#reset-ui-zoom').onclick=()=>{setInterfaceZoom(100);resetHint()};
+  $('#profile-initials').onchange=event=>{if(!setProfileInitials(event.target.value)){$('#interface-error').textContent='Enter 1–4 non-space characters for your initials.';applyInterfaceSettings()}else $('#interface-error').textContent=''};
+  applyMascot();applyInterfaceSettings();
   $('#done-colors').onclick=()=>$('#dialog').close();paint();
 }
 document.addEventListener('themechange',applyAppearance);
 window.addEventListener('storage',e=>{
   if(e.key==='editor-md-appearance-v1'){appearance=structuredClone(appearanceDefaults);readAppearance();applyAppearance()}
   if(e.key==='editor-md-mascot-v1'||e.key===null){readMascotSettings();applyMascot()}
+  if(e.key==='editor-md-interface-v1'||e.key===null){readInterfaceSettings();applyInterfaceSettings()}
 });
 $('#appearance').onclick=appearanceDialog;
 

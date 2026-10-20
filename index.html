@@ -14,7 +14,7 @@
   <header class="titlebar">
     <a class="brand" href="#" aria-label="Editor, MD home"><span class="brandmark project-icon"><img src="assets/editor-md-icon.png" alt="" width="34" height="34"></span>Editor<span class="brand-comma">,</span> <b>MD</b><span class="prototype">DESIGN PREVIEW</span></a>
     <span class="window-title">The thoughtful workspace <span>— Editor, MD</span></span>
-    <div class="title-actions"><button id="appearance" title="Customize appearance" aria-label="Customize appearance" data-icon="palette"></button><button id="theme" title="Switch color theme" aria-label="Switch color theme" data-icon="moon"></button><span class="avatar">KF</span></div>
+    <div class="title-actions"><button id="appearance" title="Customize appearance" aria-label="Customize appearance" data-icon="palette"></button><button id="theme" title="Switch color theme" aria-label="Switch color theme" data-icon="moon"></button><button class="avatar" id="profile" title="Edit your initials" aria-label="Edit your initials">KF</button></div>
   </header>
   <div class="menubar">
     <nav id="ribbon-tabs" aria-label="Ribbon"><button data-tab="File">File</button><button class="active" data-tab="Home">Home</button><button data-tab="Insert">Insert</button><button data-tab="Layout">Layout</button><button data-tab="References">References</button><button data-tab="Review">Review</button><button data-tab="View">View</button></nav>
@@ -40,20 +40,23 @@
     </section>
     <aside class="inspector" id="inspector">
       <div class="inspector-title">Document <button id="hide-inspector" aria-label="Hide document panel" data-icon="panel"></button></div>
-      <div class="inspector-tabs"><button class="selected" data-inspect="details">Details</button><button data-inspect="comments">Comments <span id="comment-count">2</span></button></div>
+      <div class="inspector-tabs"><button class="selected" data-inspect="details">Details</button><button data-inspect="footnotes">Footnotes <span id="footnote-count">0</span></button></div>
       <div id="inspector-content"></div>
       <div class="health"><span class="health-icon" data-icon="check"></span><div>A healthy document<small>Clear structure. Room to think.</small></div></div>
     </aside>
   </main>
-  <footer class="statusbar"><div><span data-icon="check"></span> <span id="word-count">0 words</span><span class="status-divider"></span><span id="reading-time">1 min read</span><span class="status-divider"></span><button id="show-inspector">Document details</button></div><div><span>Markdown</span><span class="status-divider"></span><span>UTF-8</span><button id="zoom-out" aria-label="Zoom out">−</button><input aria-label="Document zoom" id="zoom" type="range" min="75" max="125" value="100"><button id="zoom-in" aria-label="Zoom in">+</button><span id="zoom-label">100%</span></div></footer>
+  <footer class="statusbar"><div><span data-icon="check"></span> <span id="word-count">0 words</span><span class="status-divider"></span><span id="reading-time">1 min read</span><span class="status-divider"></span><button id="show-inspector">Document details</button></div><div><span>Markdown</span><span class="status-divider"></span><span>UTF-8</span><button id="zoom-out" aria-label="Zoom out">−</button><input aria-label="Document zoom" id="zoom" type="range" min="25" max="200" step="5" value="100"><button id="zoom-in" aria-label="Zoom in">+</button><button id="zoom-label" aria-label="Custom document zoom" title="Double-click to enter any positive zoom percentage. Keyboard: Enter or Space.">100%</button></div></footer>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <dialog id="dialog"><div class="dialog-head"><h2 id="dialog-title">Find anything</h2><button id="close-dialog" aria-label="Close dialog">✕</button></div><div id="dialog-content"></div></dialog>
+<script src="footnotes.js"></script>
+<script src="view-settings.js"></script>
 <script src="document-state.js"></script>
 <script src="workspace-ui.js"></script>
 <script src="app.js"></script>
 <script src="office.js"></script>
 <script src="chart-model.js"></script>
 <script src="graph-studio.js"></script>
+<script src="footnotes-ui.js"></script>
 </body>
 </html>

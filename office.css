@@ -30,6 +30,34 @@ dialog{max-height:90dvh;overflow:auto}dialog h3{font-weight:500}.dialog-intro{ma
 .mascot-settings input[type=range]{display:block;width:100%;padding:0;margin:0;height:18px;accent-color:var(--green);border:0;background:transparent;cursor:pointer}.mascot-settings input[type=range]:disabled{opacity:.4;cursor:default}
 .mascot-settings p{font-size:10px;line-height:1.6;margin:10px 0 0;color:var(--muted)}
 .appearance-reset-status{font-size:11px;line-height:1.6;min-height:2lh;margin:14px 0 0;color:var(--green)}
+body{zoom:var(--ui-scale,1)}
+.app{height:calc(100dvh / var(--ui-scale,1));min-height:calc(600px / var(--ui-scale,1))}
+dialog{max-height:calc(90dvh / var(--ui-scale,1))}
+body dialog.graph-studio{max-height:calc(92dvh / var(--ui-scale,1))}
+.title-actions #profile{padding:0;flex-shrink:0;cursor:pointer}
+.statusbar #zoom-label{min-width:42px;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.statusbar button:disabled{opacity:.35;cursor:default}
+.interface-settings{margin:0 0 16px;padding:15px 16px 10px;border:1px solid var(--line);border-radius:7px;min-width:0}
+.interface-settings legend{font-size:11px;padding:0 6px;color:var(--muted)}
+.interface-zoom-row{display:flex;align-items:center;gap:12px}
+.interface-zoom-row input[type=range]{flex:1;min-width:0;padding:0;margin:0;accent-color:var(--green)}
+.interface-zoom-row input[type=number]{width:76px;flex-shrink:0;padding:6px;margin:0}
+.interface-zoom-row button{font-size:11px;padding:7px;border:1px solid var(--line)}
+.interface-settings p{font-size:10px;line-height:1.6;color:var(--muted);margin:10px 0}
+.interface-settings #profile-initials{margin:0;max-width:120px}
+.footnote-signature{display:flex;align-items:center;gap:7px;font-size:10px;margin-top:12px;line-height:1.5}
+.footnote-signature input{accent-color:var(--green);margin:0;flex-shrink:0}
+.footnote-hint{font-size:10px;line-height:1.6;color:var(--muted)}
+.footnote-text{white-space:pre-wrap;overflow-wrap:anywhere}
+.footnote-actions{display:flex;gap:10px;flex-wrap:wrap}
+.paper .footnote-reference{font-size:.75em;line-height:0;margin-left:2px;cursor:pointer}
+.paper .footnote-reference a{text-decoration:none}
+.paper .document-footnotes{font-size:.85em;margin-top:32px}
+.paper .footnotes-heading{font:600 11px var(--font);letter-spacing:.8px}
+.paper .document-footnotes ol{padding-left:22px}
+.paper .document-footnotes li{padding-left:5px;break-inside:avoid}
+.paper .footnote-body p{margin:4px 0 8px}
+@media print{body{zoom:1!important}}
 @media print{.app{container-type:normal;background:white!important}.app:before{display:none!important}}
 .color-swatches{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}.color-swatches button{width:32px;height:32px;background:var(--swatch);border:1px solid var(--line);border-radius:50%}.color-swatches button:focus{outline:2px solid var(--green);outline-offset:3px}dialog input[type=color]{height:45px;padding:5px}dialog .format-note{font-size:11px;line-height:1.7;color:var(--muted);padding:12px 0;border-top:1px solid var(--line);margin:15px 0 0}
 .page-setup-grid{display:grid;grid-template-columns:1fr 120px;gap:24px}.page-layout-preview{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;font-size:9px;color:var(--muted)}.mini-page{width:110px;background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow)}.mini-page>div{height:100%;background:repeating-linear-gradient(transparent 0 6px,var(--line) 6px 7px);border:1px dashed var(--green);min-height:80px}.validation-error{color:#c95c43;white-space:pre-wrap;font-size:11px;margin:10px 0;line-height:1.6}

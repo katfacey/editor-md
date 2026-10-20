@@ -2,7 +2,7 @@
 
 **A healthy place for your words.** A Windows Markdown editor with an office-style ribbon, a page canvas, a source editor, and an optional doctor mascot. MD means both *Markdown* and *doctor*.
 
-**0.1.0 Beta 1** is the first desktop release. The application host and file services are written in **Rust with Tauri 2**; the shared interface uses HTML, CSS, and JavaScript. Its interface, fonts, mascot, icon, and Mermaid renderer are embedded in the executable. No Node.js, browser tab, local web server, account, or subscription is needed to use the desktop app.
+**0.1.2 Beta 2** adds document footnotes, opening Explorer files as tabs, flexible document zoom, interface scaling, and editable initials. The application host and file services are written in **Rust with Tauri 2**; the shared interface uses HTML, CSS, and JavaScript. Its interface, fonts, mascot, icon, and Mermaid renderer are embedded in the executable. No Node.js, browser tab, local web server, account, or subscription is needed to use the desktop app.
 
 <p align="center">
   <img src="assets/mascot.png" width="360" alt="Editor, MD mascot: a cat-eared doctor seated on the navy and orange MD logo">
@@ -27,13 +27,17 @@ If its folder is read-only, workspace data falls back to the user's local applic
 | Task | How |
 | --- | --- |
 | Create a document | Click **+**, or press **Ctrl+N** |
-| Open Markdown | **File → Open…**, or **Ctrl+O**; multiple files can be selected |
+| Open Markdown | **File → Open…**, or **Ctrl+O**; Explorer files opened with this executable join the existing window as tabs |
 | Save to disk | **File → Save now**, or **Ctrl+S**; a new draft opens a native Save dialog |
 | Save another file | **File → Save as…**, or **Ctrl+Shift+S** |
 | Close a tab | Its **×**, or **Ctrl+W**; unsaved work offers Save / Don't save / Cancel |
 | Edit Markdown directly | **Source** or **Split** above the document; **Write** returns to the formatted editor |
 | Change the canvas | **Page / Web** above the document; **Layout → Page setup** changes paper size and margins |
 | Change appearance | Palette button: light/dark colors, **Show mascot**, opacity, and **Restore defaults** |
+| Scale the interface | **Appearance → UI zoom** (50–200%); shared by light and dark mode |
+| Zoom the document | Bottom-right slider and buttons (25–200%); double-click the percentage for any positive custom zoom, including above 200% |
+| Set your initials | Click the initials circle at the top right, or use **Appearance → Your initials** |
+| Add a footnote | Place the cursor or select text, open **Review → Footnotes**, write your note, optionally check **Append my initials**, then **Add footnote** |
 | Create graphs | **Insert → Graph studio**; edit chart data, flowchart nodes/connections, or Mermaid source |
 | Reuse a document | **File → Save as template**, then expand **Templates** |
 | Find recent work | Expand **Archive**; it lists recently created, edited, and opened documents |
@@ -42,6 +46,10 @@ If its folder is read-only, workspace data falls back to the user's local applic
 The **File → Autosave file** switch controls automatic disk writes for documents with a saved path. New drafts are recovered locally until you explicitly choose a filename. Turning autosave off keeps edits in the buffer and recovery workspace; Ctrl+S still saves. Closing the application prompts for unsaved work. Discarding restores the saved snapshot or removes a never-saved draft.
 
 Default page setup is **US Letter, 8.5 × 11 inches, with 1-inch margins**. Page/Web switching preserves page setup. Custom page settings are stored in an unobtrusive leading Markdown comment beginning with **editor-md-page**; ordinary readers hide it.
+
+Footnotes replace the old temporary comments panel. Each document owns its notes, saved as Markdown references such as `[^1]` and definitions such as `[^1]: A note. -KF`. Numbers follow the order of references: inserting between 3 and 4 creates a new 4 and shifts the old 4 to 5; deleting a note closes the gap. The panel supports editing, deletion, and jumping to references. The optional initials signature uses your current profile initials; existing signatures remain unchanged when you edit your profile. Notes also appear at the end of the formatted document and in HTML/PDF output. Other readers need the [Markdown footnote extension](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#footnotes) to render this syntax.
+
+When updating, close the old app and place the new executable beside its existing **EditorMD-data** folder to retain your workspace. If Explorer still launches the old version, use **Open with** to select the new executable. The app does not change Windows file associations automatically. Interface zoom and document zoom are independent and do not alter PDF page size.
 
 The default light theme uses warm paper and green accents. Dark mode uses navy and orange. Mascot visibility and opacity are shared by both modes, defaulting to **shown at 20%**. The image fits the entire application and sits behind opaque document surfaces. It is excluded from document exports.
 
@@ -57,7 +65,7 @@ The [feature roadmap](design/FEATURES.md) distinguishes the broader intended Wri
 
 ## Beta boundaries
 
-- This is an early beta, not a complete replacement for LibreOffice Writer. Comments are session-only, and advanced review, references, citations, Git integration, styles, and editable multipage pagination are unfinished.
+- This is an early beta, not a complete replacement for LibreOffice Writer. Advanced review, citations, Git integration, styles, and editable multipage pagination are unfinished. Footnotes print as an end-of-document list, rather than being placed automatically at the bottom of each printed page.
 - Markdown opens with a GFM parser. Source text is retained verbatim through view changes and saves until it is edited. Editing the formatted **Write** view serializes the document back to Markdown and may normalize spacing or lose unsupported extensions. Use **Source** for syntax-sensitive documents.
 - Font color, point size, subscript/superscript, highlighting, and some paragraph formatting use inline HTML. Readers that strip HTML styles, including GitHub, may display them differently.
 - Mermaid source is portable to compatible readers; graph zoom and inspection are application features. PDF graphs are static.

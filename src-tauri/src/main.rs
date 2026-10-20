@@ -1,7 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use editor_md::{
-    atomic_write, checked_write, decode_markdown, encode_markdown, read_utf8, revision, Page,
+    atomic_write, checked_write, decode_markdown, encode_markdown, launch_paths, read_utf8,
+    revision, Page,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -11,7 +12,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, Ordering},
-        Mutex,
+        Arc, Mutex,
     },
 };
 use tauri::{Emitter, Manager};
@@ -21,6 +22,7 @@ struct Services {
     handles: Mutex<HashMap<String, PathBuf>>,
     closing: AtomicBool,
     frontend_ready: AtomicBool,
+    pending_paths: Arc<Mutex<Vec<PathBuf>>>,
 }
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -59,6 +61,38 @@ fn read_document(path: &Path, id: String) -> Result<DiskDocument, String> {
     })
 }
 
+fn register_document(state: &Services, path: &Path) -> Result<DiskDocument, String> {
+    let canonical =
+        fs::canonicalize(path).map_err(|error| format!("{}: {error}", path.display()))?;
+    let mut handles = state.handles.lock().map_err(|e| e.to_string())?;
+    let id = handles
+        .iter()
+        .find(|(_, existing)| {
+            existing.to_string_lossy().to_lowercase() == canonical.to_string_lossy().to_lowercase()
+        })
+        .map(|(id, _)| id.clone())
+        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    let document = read_document(&canonical, id.clone())?;
+    handles.insert(id, canonical);
+    Ok(document)
+}
+fn pending_documents(state: &Services) -> Result<Value, String> {
+    let paths = std::mem::take(&mut *state.pending_paths.lock().map_err(|e| e.to_string())?);
+    let mut documents = Vec::new();
+    let mut errors = Vec::new();
+    for path in paths {
+        match register_document(state, &path) {
+            Ok(doc) => documents.push(doc),
+            Err(error) => errors.push(error),
+        }
+    }
+    Ok(json!({"documents":documents,"errors":errors}))
+}
+#[tauri::command]
+async fn take_pending_documents(state: tauri::State<'_, Services>) -> Result<Value, String> {
+    pending_documents(&state)
+}
+
 #[tauri::command]
 async fn bootstrap(state: tauri::State<'_, Services>) -> Result<Value, String> {
     let smoke_test = std::env::args().any(|a| a == "--smoke-test");
@@ -77,13 +111,16 @@ async fn bootstrap(state: tauri::State<'_, Services>) -> Result<Value, String> {
     if let Some(files) = workspace.get("files").and_then(Value::as_array) {
         for file in files {
             if let (Some(id), Some(path)) = (file["id"].as_str(), file["nativePath"].as_str()) {
-                match read_document(Path::new(path), id.into()) {
+                match fs::canonicalize(path)
+                    .map_err(|e| e.to_string())
+                    .and_then(|path| read_document(&path, id.into()))
+                {
                     Ok(doc) => {
                         state
                             .handles
                             .lock()
                             .map_err(|e| e.to_string())?
-                            .insert(id.into(), PathBuf::from(path));
+                            .insert(id.into(), PathBuf::from(&doc.path));
                         disks.push(doc);
                     }
                     Err(error) => warnings.push(format!("{path}: {error}")),
@@ -106,22 +143,12 @@ async fn bootstrap(state: tauri::State<'_, Services>) -> Result<Value, String> {
             .insert(doc.id.clone(), path);
         launch.push(doc);
     }
-    for argument in std::env::args_os()
-        .skip(1)
-        .filter(|p| !p.to_string_lossy().starts_with("--"))
-    {
-        let path = PathBuf::from(argument);
-        match read_document(&path, uuid::Uuid::new_v4().to_string()) {
-            Ok(doc) => {
-                state
-                    .handles
-                    .lock()
-                    .map_err(|e| e.to_string())?
-                    .insert(doc.id.clone(), path);
-                launch.push(doc);
-            }
-            Err(error) => warnings.push(error),
-        }
+    let pending = pending_documents(&state)?;
+    for document in pending["documents"].as_array().unwrap() {
+        launch.push(serde_json::from_value(document.clone()).map_err(|e| e.to_string())?);
+    }
+    for error in pending["errors"].as_array().unwrap() {
+        warnings.push(error.as_str().unwrap_or_default().to_string());
     }
     Ok(
         json!({"workspace":workspace,"disks":disks,"launch":launch,"warnings":warnings,"dataDirectory":state.root.to_string_lossy(),"version":env!("CARGO_PKG_VERSION"),"smokeTest":smoke_test}),
@@ -137,15 +164,7 @@ async fn open_documents(state: tauri::State<'_, Services>) -> Result<Vec<DiskDoc
         .unwrap_or_default();
     let mut docs = Vec::new();
     for path in paths {
-        let mut handles = state.handles.lock().map_err(|e| e.to_string())?;
-        let id = handles
-            .iter()
-            .find(|(_, p)| **p == path)
-            .map(|(id, _)| id.clone())
-            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-        let doc = read_document(&path, id.clone())?;
-        handles.insert(id, path);
-        docs.push(doc);
+        docs.push(register_document(&state, &path)?);
     }
     Ok(docs)
 }
@@ -203,6 +222,7 @@ async fn save_document(
             content.as_bytes(),
         )?;
     }
+    let path = fs::canonicalize(&path).unwrap_or(path);
     state
         .handles
         .lock()
@@ -282,8 +302,16 @@ fn print_document(window: tauri::WebviewWindow) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn desktop_ready(state: tauri::State<'_, Services>) {
+fn desktop_ready(app: tauri::AppHandle, state: tauri::State<'_, Services>) {
     state.frontend_ready.store(true, Ordering::SeqCst);
+    if state
+        .pending_paths
+        .lock()
+        .map(|paths| !paths.is_empty())
+        .unwrap_or(false)
+    {
+        let _ = app.emit("native-open-requested", ());
+    }
 }
 
 #[tauri::command]
@@ -308,18 +336,60 @@ fn smoke_result(
 }
 
 #[tauri::command]
-fn smoke_external_change(state: tauri::State<'_, Services>) -> Result<(), String> {
+fn smoke_external_change(state: tauri::State<'_, Services>) -> Result<String, String> {
     if !std::env::args().any(|a| a == "--smoke-test") {
         return Err("Available only in the built-in smoke test.".into());
     }
+    let saved = read_utf8(&state.root.join("native-smoke.md"))?;
     atomic_write(
         &state.root.join("native-smoke.md"),
         b"# External change must be kept\n",
-    )
+    )?;
+    Ok(saved)
+}
+
+#[tauri::command]
+async fn smoke_launch_secondary(state: tauri::State<'_, Services>) -> Result<(), String> {
+    if !std::env::args().any(|a| a == "--smoke-test") {
+        return Err("Available only in the built-in smoke test.".into());
+    }
+    for name in ["Explorer one.md", "Explorer 二.md"] {
+        atomic_write(
+            &state.root.join(name),
+            b"# Forwarded from another process\n",
+        )?;
+    }
+    let mut command =
+        std::process::Command::new(std::env::current_exe().map_err(|e| e.to_string())?);
+    command.current_dir(&state.root).args([
+        "--smoke-child",
+        "Explorer one.md",
+        "Explorer 二.md",
+        "Explorer one.md",
+    ]);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000);
+    }
+    let mut child = command.spawn().map_err(|e| e.to_string())?;
+    for _ in 0..400 {
+        if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
+            return if status.success() {
+                Ok(())
+            } else {
+                Err(format!("Secondary process exited with {status}"))
+            };
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+    Err("Secondary process did not forward to the existing window.".into())
 }
 
 fn data_directory(app: &tauri::App) -> Result<PathBuf, Box<dyn std::error::Error>> {
-    let smoke_test = std::env::args().any(|a| a == "--smoke-test");
+    let smoke_test = std::env::args().any(|a| a == "--smoke-test" || a == "--smoke-child");
     let portable = std::env::current_exe()?
         .parent()
         .ok_or("Missing executable directory")?
@@ -348,8 +418,36 @@ fn main() {
         assert_eq!(read_utf8(&path).unwrap(), "# Editor, MD\n");
         return;
     }
+    let pending = Arc::new(Mutex::new(launch_paths(
+        std::env::args().collect::<Vec<_>>(),
+        &std::env::current_dir().unwrap_or_default(),
+    )));
+    let forwarded = pending.clone();
+    let mut context = tauri::generate_context!();
+    let isolated = std::env::args().any(|a| a == "--smoke-test" || a == "--smoke-child");
+    if isolated {
+        context.config_mut().identifier.push_str(".smoke");
+    }
     tauri::Builder::default()
-        .setup(|app| {
+        .plugin(tauri_plugin_single_instance::init(move |app, args, cwd| {
+            let paths = launch_paths(args, Path::new(&cwd));
+            if let Ok(mut queue) = forwarded.lock() {
+                queue.extend(paths);
+            }
+            if let Some(services) = app.try_state::<Services>() {
+                if services.frontend_ready.load(Ordering::SeqCst) {
+                    let _ = app.emit("native-open-requested", ());
+                }
+            }
+            if !isolated {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.unminimize();
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+        }))
+        .setup(move |app| {
             let root = data_directory(app)?;
             let profile = root.join("webview");
             app.manage(Services {
@@ -357,16 +455,17 @@ fn main() {
                 handles: Mutex::new(HashMap::new()),
                 closing: AtomicBool::new(false),
                 frontend_ready: AtomicBool::new(false),
+                pending_paths: pending.clone(),
             });
             let window = tauri::WebviewWindowBuilder::new(
                 app,
                 "main",
                 tauri::WebviewUrl::App("index.html".into()),
             )
-            .title("Editor, MD — Beta")
+            .title(format!("Editor, MD — {} Beta", env!("CARGO_PKG_VERSION")))
             .inner_size(1440.0, 960.0)
             .min_inner_size(800.0, 600.0)
-            .visible(!std::env::args().any(|a| a == "--smoke-test"))
+            .visible(!isolated)
             .data_directory(profile)
             .on_navigation(|url| {
                 matches!(url.scheme(), "tauri")
@@ -390,6 +489,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             bootstrap,
+            take_pending_documents,
             open_documents,
             save_document,
             save_workspace,
@@ -398,8 +498,9 @@ fn main() {
             print_document,
             desktop_ready,
             smoke_result,
-            smoke_external_change
+            smoke_external_change,
+            smoke_launch_secondary
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("Could not start Editor, MD. Ensure the Microsoft WebView2 Runtime is installed.");
 }

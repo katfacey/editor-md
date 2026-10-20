@@ -20,11 +20,14 @@
     });
     return sanitize(template.innerHTML);
   };
+  installFootnoteMarkdown();
   const queues=new Map(),autosaveTimers=new Map();
   let workspaceQueue=Promise.resolve(),checkpointTimer,ready=false,closePending=false,dataDirectory='';
+  let incomingRequests=Promise.resolve(),incomingPending=false,incomingDocuments=[],incomingErrors=[];
   const pageOf=file=>({...defaultPage,...file.page});
   const sourceOf=file=>typeof file.sourceText==='string'?file.sourceText:markdown(file.html);
   const cleanHtml=()=>{
+    refreshFootnoteNumbers($('#paper'));
     const copy=$('#paper').cloneNode(true);
     copy.querySelectorAll('[data-mermaid]').forEach(block=>{
       block.innerHTML='';
@@ -133,9 +136,8 @@
     const html=renderMarkdown(doc.source);
     return {id:doc.id,name:doc.name,html,sourceHtml:html,sourceText:doc.source,page:doc.page,nativePath:doc.path,nativeRevision:doc.revision};
   }
-  async function nativeOpen(){
-    try{
-      const docs=await invoke('open_documents');
+  function adoptDocuments(docs){
+      captureDocument();
       for(const doc of docs){
         const existing=files.find(file=>file.id===doc.id||file.nativePath===doc.path);
         if(existing&&documentState.isDirty(existing)){openFile(files.indexOf(existing));toast('Kept the open unsaved buffer');continue;}
@@ -143,8 +145,27 @@
         if(existing)Object.assign(existing,value);else files.push(file);
         documentState.saved.set(file,structuredClone(file));openFile(files.indexOf(file));
       }
+  }
+  async function nativeOpen(){
+    try{
+      const docs=await invoke('open_documents');
+      adoptDocuments(docs);
       await checkpoint();
     }catch(error){showError('Could not open Markdown',error);}
+  }
+  function receiveExternalOpen(){
+    incomingPending=true;
+    if(!ready||$('#dialog').open||closePending)return incomingRequests;
+    incomingRequests=incomingRequests.catch(()=>{}).then(async()=>{
+      if($('#dialog').open||closePending)return;
+      incomingPending=false;
+      const batch=await invoke('take_pending_documents');
+      incomingDocuments.push(...batch.documents);incomingErrors.push(...batch.errors);
+      if($('#dialog').open||closePending){incomingPending=true;return;}
+      adoptDocuments(incomingDocuments.splice(0));await checkpoint();
+      if(incomingErrors.length)showError('Some files could not be opened',incomingErrors.splice(0).join('\n'));
+    }).catch(error=>showError('Could not open Explorer files',error));
+    return incomingRequests;
   }
   function askToSave(file,quitting=false){
     return new Promise(resolve=>{
@@ -226,7 +247,7 @@
       $('#ribbon').prepend(group);$('#native-open').onclick=nativeOpen;$('#native-save-as').onclick=()=>nativeSave(files[active],{saveAs:true});$('#native-save-as').disabled=active<0;
     }
   };
-  $('#about').onclick=()=>openDialog('Editor, MD — Beta','<p><strong>A healthy place for your words.</strong></p><p>Version 0.1.0-beta.1 · Windows desktop app built with Rust and Tauri.</p><p>File → Open (Ctrl+O), Save (Ctrl+S), or Save as (Ctrl+Shift+S). Switch Write / Split / Source above the document. Export offers Markdown, HTML, and system Print / PDF.</p><p>Developed with assistance from OpenAI Codex. AI assisted with interface design, code, documentation, and testing. This beta still requires human review and feedback.</p><p>Advanced Writer features and the designed MCP agent interface remain planned work.</p>');
+  $('#about').onclick=()=>openDialog('Editor, MD — Beta','<p><strong>A healthy place for your words.</strong></p><p>Version 0.1.2 · Windows desktop app built with Rust and Tauri.</p><p>File → Open (Ctrl+O), Save (Ctrl+S), or Save as (Ctrl+Shift+S). Switch Write / Split / Source above the document. Export offers Markdown, HTML, and system Print / PDF.</p><p>Developed with assistance from OpenAI Codex. AI assisted with interface design, code, documentation, and testing. This beta still requires human review and feedback.</p><p>Advanced Writer features and the designed MCP agent interface remain planned work.</p>');
   document.addEventListener('keydown',event=>{
     if(!(event.ctrlKey||event.metaKey))return;
     const key=event.key.toLowerCase();
@@ -241,6 +262,7 @@
   },true);
   document.addEventListener('documentchange',queueCheckpoint);
   $('#dialog').addEventListener('close',queueCheckpoint);
+  $('#dialog').addEventListener('close',()=>{if(incomingPending||incomingDocuments.length)receiveExternalOpen()});
   document.addEventListener('click',event=>{if(event.target.closest('[data-use-template],#save-template'))queueCheckpoint();});
   try{
     const boot=await invoke('bootstrap');dataDirectory=boot.dataDirectory;
@@ -265,16 +287,15 @@
     templates.forEach(template=>template.html=sanitize(template.html));
     recentDocuments=Array.isArray(stored?.recent)?stored.recent:[];
     openDocuments=files.filter(file=>(stored?.openDocuments||[]).includes(file.id));
-    for(const doc of boot.launch){
-      const file=fileFromDisk(doc);files.push(file);openDocuments.push(file);documentState.saved.set(file,structuredClone(file));
-    }
-    comments=[];active=-1;ready=true;
-    const first=openDocuments.find(file=>file.id===stored?.active)||openDocuments[0];
+    active=-1;ready=true;
+    adoptDocuments(boot.launch);
+    const first=boot.launch.length?files[active]:openDocuments.find(file=>file.id===stored?.active)||openDocuments[0];
     if(first)openFile(files.indexOf(first),{capture:false});else emptyEditor();
     observedDocuments.clear();files.forEach(file=>observedDocuments.set(file,JSON.stringify(file)));
-    $('.prototype').textContent='BETA 0.1.0';$('.workspace-bottom small').textContent='Local files · portable workspace';
+    $('.prototype').textContent='BETA '+boot.version;$('.workspace-bottom small').textContent='Local files · portable workspace';
     ribbon('Home');app.inert=false;
     await window.__TAURI__.event.listen('native-close-requested',closeWindow);
+    await window.__TAURI__.event.listen('native-open-requested',receiveExternalOpen);
     await invoke('desktop_ready');
     if(boot.warnings.length)showError('Some files need attention',boot.warnings.join('\n'));
     await checkpoint();
@@ -285,12 +306,68 @@
         const check=(condition,label)=>{if(!condition)throw Error(label);results.push(label);};
         const file=files[active],source=sourceOf(file);
         check(!!file.nativePath,'Native file opened');
+        zoom(200);$('#zoom-in').click();
+        check(documentZoom===200&&$('#zoom-in').disabled,'Quick document zoom stops at 200%');
+        customZoomDialog();$('#custom-zoom').value='800';$('#custom-zoom-form button[type=submit]').click();
+        check(documentZoom===800&&$('#zoom-label').textContent==='800%','Custom document zoom accepts 800%');
+        check(!zoom(0)&&documentZoom===800,'Invalid custom zoom leaves the previous view intact');
+        setInterfaceZoom(125);setProfileInitials('xy');
+        appearanceDialog();
+        check($('#ui-zoom-number').value==='125'&&$('#profile-initials').value==='XY','Appearance shares interface zoom and editable initials');
+        check(Math.abs($('.app').getBoundingClientRect().height-innerHeight)<3,'UI scaling fits the application to the window');
+        check($('#dialog').getBoundingClientRect().height<=innerHeight,'Appearance remains accessible after UI scaling');
+        $('#dialog').close();theme();
+        check(interfaceSettings.zoom===125&&$('#profile').textContent==='XY'&&documentZoom===800,'Theme changes preserve UI preferences and independent document zoom');
+        readInterfaceSettings();applyInterfaceSettings();
+        check(interfaceSettings.zoom===125&&interfaceSettings.initials==='XY','Interface preferences persist');
+        $('#profile').click();$('#profile-initials').value='ab';$('#profile-form button[type=submit]').click();
+        check($('#profile').textContent==='AB','Avatar initials can be edited directly');
+        setInterfaceZoom(100);setProfileInitials('KF');zoom(100);
+        // Actual second process, including relative paths, spaces, Unicode, and a duplicate.
+        openDialog('Single-instance test','<p>Incoming files wait until this dialog closes.</p>');
+        await invoke('smoke_launch_secondary');
+        check(!openDocuments.some(doc=>doc.name==='Explorer one.md'),'Explorer requests wait while a dialog is open');
+        $('#dialog').close();await receiveExternalOpen();await incomingRequests;
+        check(openDocuments.filter(doc=>doc.name==='Explorer one.md').length===1&&openDocuments.filter(doc=>doc.name==='Explorer 二.md').length===1,'A second process opens two unique tabs in the existing window');
+        for(const forwarded of openDocuments.slice().filter(document=>document!==file))await closeDocument(forwarded);
+        openFile(files.indexOf(file));
         setMode('source');setMode('write');setMode('split');setMode('write');
         check(sourceOf(file)===source,'Mode switches preserve exact Markdown');
         check($('#paper table')?.rows.length===2,'GFM table rendered');
         const svg=await renderDiagram('flowchart LR\n A[Open] --> B[Save]');
         check(svg.includes('<svg'),'Offline Mermaid renderer works');
-        file.sourceText=source+'\n\nSaved by Rust.\n';file.html=renderMarkdown(file.sourceText);file.sourceHtml=file.html;$('#paper').innerHTML=file.html;
+        const noteSource='Alpha beta gamma delta epsilon.\n',noteHtml=renderMarkdown(noteSource);
+        const annotated={id:crypto.randomUUID(),name:'Footnotes smoke.md',html:noteHtml,sourceHtml:noteHtml,sourceText:noteSource};
+        files.push(annotated);openFile(files.indexOf(annotated));setMode('source');showFootnotes();
+        const postNote=(word,text,sign=false)=>{
+          const offset=$('#source').value.indexOf(word)+word.length;$('#source').setSelectionRange(offset,offset);
+          $('#footnote-text').value=text;$('#footnote-signature').checked=sign;$('#post-footnote').click();
+        };
+        postNote('Alpha','First **bold** note.\nSecond line.',true);
+        postNote('beta','Second note.');postNote('gamma','Third note.');postNote('epsilon','Last note.');
+        check(footnoteModel().notes.length===4&&footnoteModel().notes[0].text==='First **bold** note.\nSecond line. -KF'&&footnoteModel().notes[1].text==='Second note.','Footnotes use optional current initials and retain multiline Markdown');
+        setMode('write');
+        const walker=document.createTreeWalker($('#paper'),NodeFilter.SHOW_TEXT);let textNode;
+        while(walker.nextNode())if(walker.currentNode.textContent.includes('delta')){textNode=walker.currentNode;break;}
+        const range=document.createRange();range.setStart(textNode,textNode.textContent.indexOf('delta')+5);range.collapse(true);selection=range;
+        $('#footnote-text').value='Inserted between three and four.';$('#footnote-signature').checked=false;$('#post-footnote').click();
+        check(footnoteModel().notes[3].text==='Inserted between three and four.'&&footnoteModel().notes[4].text==='Last note.'&&$$('#paper [data-footnote-ref]').map(node=>node.textContent).join(',')==='1,2,3,4,5','Inserting in Write between footnotes 3 and 4 shifts the old 4 to 5');
+        $('[data-footnote-delete="2"]').click();
+        check(footnoteModel().notes.length===4&&$$('#paper [data-footnote-ref]').map(node=>node.textContent).join(',')==='1,2,3,4'&&!sourceOf(annotated).includes('Second note.'),'Deleting a footnote removes its reference and closes the numbering gap');
+        $('[data-footnote-edit="4"]').click();$('#footnote-text').value='Edited last note.';$('#post-footnote').click();
+        check(footnoteModel().notes[3].text==='Edited last note.','Existing footnotes can be edited in the same inspector');
+        const annotatedSource=sourceOf(annotated);setMode('source');setMode('write');
+        check(sourceOf(annotated)===annotatedSource&&$('#paper .footnote-body strong')?.textContent==='bold','Footnotes survive Write and Source round trips with formatting');
+        const rendered=renderMarkdown(annotatedSource),roundTrip=markdown(rendered);
+        check(Footnotes.parse(roundTrip).notes.map(note=>note.text).join('|')===footnoteModel().notes.map(note=>note.text).join('|')&&$$('#paper [data-footnotes] li').length===4,'Markdown reload retains footnote text and print-ready definitions');
+        const namedSource=annotatedSource.replaceAll('[^1]','[^named]');
+        annotated.sourceText=namedSource;annotated.html=renderMarkdown(namedSource);annotated.sourceHtml=annotated.html;$('#paper').innerHTML=annotated.html;
+        $('#paper p').append(document.createTextNode(' Another word.'));save();
+        check(footnoteModel().notes[0].id==='named'&&$('#paper [data-footnote-ref]').dataset.footnoteRef==='named'&&$('[data-footnote-edit="named"]'),'Named footnote identities stay consistent while typing in Write');
+        openFile(files.indexOf(file));check($('#footnote-count').textContent==='0','Footnotes stay separate between documents');
+        openFile(files.indexOf(annotated));check($('#footnote-count').textContent==='4','Returning to a document restores its footnotes');
+        const discardNotes=closeDocument(annotated);$('#native-discard').click();await discardNotes;setInspection('details');
+        file.sourceText=source+'\n\nSaved by Rust with a footnote[^1].\n\n[^1]: Saved with the document. -KF\n';file.html=renderMarkdown(file.sourceText);file.sourceHtml=file.html;$('#paper').innerHTML=file.html;
         check(await nativeSave(file,{quiet:true}),'Native save completed');
         check(!documentState.isDirty(file),'Saved snapshot committed after disk write');
         const draft={id:crypto.randomUUID(),name:'Unsaved smoke.md',html:'<p>Keep draft</p>',sourceHtml:'<p>Keep draft</p>',sourceText:'Keep draft'};
@@ -303,7 +380,8 @@
         const discardClose=closeDocument(draft);$('#native-discard').click();await discardClose;
         check(!files.includes(draft)&&files[active]===file,'Discard removes draft and displays the remaining file');
         const savedSource=documentState.saved.get(file).sourceText;
-        await invoke('smoke_external_change');
+        const diskSource=await invoke('smoke_external_change');
+        check(diskSource.includes('[^1]: Saved with the document. -KF'),'Native disk save includes portable Markdown footnotes');
         file.sourceText+='\nUnsaved after external change.\n';file.html=renderMarkdown(file.sourceText);file.sourceHtml=file.html;$('#paper').innerHTML=file.html;
         check(!await nativeSave(file,{quiet:true}),'External change blocks a stale save');
         check(documentState.isDirty(file)&&documentState.saved.get(file).sourceText===savedSource,'Failed save preserves the buffer and saved snapshot');

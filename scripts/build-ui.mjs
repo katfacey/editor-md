@@ -1,10 +1,11 @@
 import {build} from 'esbuild';
 import {mkdir,copyFile,readFile,writeFile,cp} from 'node:fs/promises';
+const {version}=JSON.parse(await readFile('package.json','utf8'));
 await mkdir('dist/vendor',{recursive:true});
-for(const file of ['index.html','styles.css','office.css','editing.css','document-state.js','workspace-ui.js','app.js','office.js','chart-model.js','graph-studio.js','desktop.js']){
+for(const file of ['index.html','styles.css','office.css','editing.css','view-settings.js','footnotes.js','footnotes-ui.js','document-state.js','workspace-ui.js','app.js','office.js','chart-model.js','graph-studio.js','desktop.js']){
   let source=await readFile(file,'utf8');
   if(file==='styles.css') source=source.replace(/^@import[^;]+;\s*/,"@import url('assets/fonts/fonts.css');\n");
-  if(file==='index.html')source=source.replace('</body>','<script src="vendor/markdown.js"></script><script src="desktop.js"></script></body>').replace('DESIGN PREVIEW','BETA 0.1.0').replace('A little clarity goes a long way.','Beta');
+  if(file==='index.html')source=source.replace('</body>','<script src="vendor/markdown.js"></script><script src="desktop.js"></script></body>').replace('DESIGN PREVIEW','BETA '+version).replace('A little clarity goes a long way.','Beta '+version);
   if(file==='graph-studio.js')source=source.replace('/node_modules/mermaid/dist/mermaid.esm.min.mjs','./vendor/mermaid.mjs');
   await writeFile('dist/'+file,source);
 }

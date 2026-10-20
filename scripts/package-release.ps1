@@ -1,4 +1,4 @@
-param([string]$Version='0.1.0-beta.1')
+param([string]$Version='0.1.2-beta.2')
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $projectRoot
@@ -22,7 +22,7 @@ Set-Content -LiteralPath (Join-Path $packageFolder 'CHECKSUMS.txt') -Value $inne
 $zipFile=Join-Path $releaseFolder "Editor-MD-$Version-windows-x64-portable.zip"
 Compress-Archive -LiteralPath $packageFolder -DestinationPath $zipFile -Force
 Copy-Item -LiteralPath 'THIRD_PARTY_NOTICES.txt' -Destination (Join-Path $releaseFolder 'THIRD_PARTY_NOTICES.txt')
-$outerChecksums=Get-ChildItem -LiteralPath $releaseFolder -File | Where-Object {$_.Extension -in '.exe','.zip'} | ForEach-Object {
+$outerChecksums=Get-ChildItem -LiteralPath $releaseFolder -File | Where-Object {$_.Name -in $filename,"Editor-MD-$Version-windows-x64-portable.zip"} | ForEach-Object {
   $hash=Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256
   $hash.Hash.ToLower()+'  '+$_.Name
 }

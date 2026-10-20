@@ -1,6 +1,26 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{fs, io::Write, path::Path};
+use std::{
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+};
+
+pub fn launch_paths(arguments: impl IntoIterator<Item = String>, cwd: &Path) -> Vec<PathBuf> {
+    arguments
+        .into_iter()
+        .skip(1)
+        .filter(|value| !value.starts_with("--"))
+        .map(|value| {
+            let path = PathBuf::from(value);
+            if path.is_absolute() {
+                path
+            } else {
+                cwd.join(path)
+            }
+        })
+        .collect()
+}
 
 pub const MAX_DOCUMENT_BYTES: u64 = 20 * 1024 * 1024;
 const PAGE_PREFIX: &str = "<!-- editor-md-page: ";
@@ -125,6 +145,20 @@ pub fn checked_write(path: &Path, expected: &str, content: &[u8]) -> Result<Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn explorer_arguments_preserve_spaces_unicode_and_launch_directory() {
+        let cwd = std::env::temp_dir();
+        let paths = launch_paths(
+            vec![
+                "editor.exe".into(),
+                "--smoke-child".into(),
+                "First file.md".into(),
+                "第二.md".into(),
+            ],
+            &cwd,
+        );
+        assert_eq!(paths, vec![cwd.join("First file.md"), cwd.join("第二.md")]);
+    }
     #[test]
     fn default_pages_preserve_source_bytes() {
         let source = "# Heading\r\n\r\n1. First\r\n2. Second\r\n\r\n\x60\x60\x60rust\r\nfn main() {}\r\n\x60\x60\x60\r\n";
