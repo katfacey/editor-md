@@ -4,10 +4,6 @@
 
 **0.1.2 Beta 2** adds document footnotes, opening Explorer files as tabs, flexible document zoom, interface scaling, and editable initials. The application host and file services are written in **Rust with Tauri 2**; the shared interface uses HTML, CSS, and JavaScript. Its interface, fonts, mascot, icon, and Mermaid renderer are embedded in the executable. No Node.js, browser tab, local web server, account, or subscription is needed to use the desktop app.
 
-<p align="center">
-  <img src="assets/mascot.png" width="360" alt="Editor, MD mascot: a cat-eared doctor seated on the navy and orange MD logo">
-</p>
-
 ![Light and dark design reference](design/light-dark-comparison.png)
 
 ## Download and run
