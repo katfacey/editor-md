@@ -18,6 +18,11 @@ use std::{
 use tauri::{Emitter, Manager};
 mod project_commands;
 
+// Cargo uses SemVer; the hotfix is displayed as the requested 0.1.3.1.
+fn display_version() -> String {
+    env!("CARGO_PKG_VERSION").replace("-hotfix.", ".")
+}
+
 struct Services {
     root: PathBuf,
     handles: Mutex<HashMap<String, PathBuf>>,
@@ -160,7 +165,7 @@ async fn bootstrap(state: tauri::State<'_, Services>) -> Result<Value, String> {
         warnings.push(error.as_str().unwrap_or_default().to_string());
     }
     Ok(
-        json!({"workspace":workspace,"disks":disks,"launch":launch,"warnings":warnings,"dataDirectory":state.root.to_string_lossy(),"version":env!("CARGO_PKG_VERSION"),"smokeTest":smoke_test}),
+        json!({"workspace":workspace,"disks":disks,"launch":launch,"warnings":warnings,"dataDirectory":state.root.to_string_lossy(),"version":display_version(),"smokeTest":smoke_test}),
     )
 }
 
@@ -485,7 +490,7 @@ fn main() {
                 "main",
                 tauri::WebviewUrl::App("index.html".into()),
             )
-            .title(format!("Editor, MD — {} Beta", env!("CARGO_PKG_VERSION")))
+            .title(format!("Editor, MD — {} Beta Hotfix", display_version()))
             .inner_size(1440.0, 960.0)
             .min_inner_size(800.0, 600.0)
             .visible(!isolated)

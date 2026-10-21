@@ -1,6 +1,7 @@
 import {build} from 'esbuild';
 import {mkdir,copyFile,readFile,writeFile,cp} from 'node:fs/promises';
-const {version}=JSON.parse(await readFile('package.json','utf8'));
+const metadata=JSON.parse(await readFile('package.json','utf8'));
+const version=metadata.version.replace('-hotfix.','.');
 await mkdir('dist/vendor',{recursive:true});
 for(const file of ['index.html','styles.css','office.css','editing.css','project.css','project-model.js','project-ui.js','view-settings.js','footnotes.js','footnotes-ui.js','document-state.js','workspace-ui.js','app.js','office.js','chart-model.js','graph-studio.js','desktop.js']){
   let source=await readFile(file,'utf8');

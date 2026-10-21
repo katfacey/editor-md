@@ -1,6 +1,6 @@
 [package]
 name = "editor-md"
-version = "0.1.3"
+version = "0.1.3-hotfix.1"
 description = "Editor, MD — a local Markdown writing workspace"
 authors = ["Kat Facey"]
 edition = "2021"

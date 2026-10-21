@@ -1,6 +1,6 @@
 {
   "name": "editor-md-design",
-  "version": "0.1.3",
+  "version": "0.1.3-hotfix.1",
   "private": true,
   "description": "Editor, MD — portable Rust desktop Markdown editor",
   "scripts": {

@@ -335,6 +335,51 @@
         $('#profile').click();$('#profile-initials').value='ab';$('#profile-form button[type=submit]').click();
         check($('#profile').textContent==='AB','Avatar initials can be edited directly');
         setInterfaceZoom(100);setProfileInitials('KF');zoom(100);
+        // Measure real WebView layout, not just page metadata or CSS strings.
+        const previousLayout=documentLayout;
+        const layoutSource='# Layout check\n\nShort text.\n';
+        const layoutHtml=renderMarkdown(layoutSource);
+        const layoutDraft={id:crypto.randomUUID(),name:'Layout smoke.md',html:layoutHtml,sourceHtml:layoutHtml,sourceText:layoutSource};
+        files.push(layoutDraft);openFile(files.indexOf(layoutDraft));setMode('write');setDocumentLayout('page');
+        const paper=$('#paper'),canvas=$('#canvas-scroll'),sourceEditor=$('#source');
+        const near=(value,expected)=>Math.abs(value-expected)<2;
+        const hasNoInnerScroll=node=>!['auto','scroll'].includes(getComputedStyle(node).overflowY)&&node.scrollHeight<=node.clientHeight+2;
+        check(near(paper.getBoundingClientRect().width,816)&&near(paper.getBoundingClientRect().height,1056),'Default Letter paper measures 8.5 by 11 inches');
+        check(['Top','Bottom','Left','Right'].every(edge=>getComputedStyle(paper)['padding'+edge]==='96px'),'Default paper has one-inch margins');
+        pageDialog();$('#paper-size').value='Legal';$('#apply-page').click();
+        check(near(paper.getBoundingClientRect().width,816)&&near(paper.getBoundingClientRect().height,1344),'Page setup visibly changes Letter to Legal');
+        pageDialog();$('#page-orientation').value='landscape';$('#apply-page').click();
+        check(near(paper.getBoundingClientRect().width,1344)&&near(paper.getBoundingClientRect().height,816),'Landscape swaps the selected paper dimensions');
+        pageDialog();$('#paper-size').value='A4';$('#page-orientation').value='portrait';$('#margin-left').value='0.75';$('#margin-right').value='1.25';$('#apply-page').click();
+        check(near(paper.getBoundingClientRect().width,8.2677*96)&&near(paper.getBoundingClientRect().height,11.6929*96)&&getComputedStyle(paper).paddingLeft==='72px'&&getComputedStyle(paper).paddingRight==='120px','A4 and custom margins affect the actual paper');
+        const savedPage=JSON.stringify(layoutDraft.page);
+        setDocumentLayout('web');setDocumentLayout('page');
+        check(JSON.stringify(layoutDraft.page)===savedPage&&near(paper.getBoundingClientRect().height,11.6929*96),'Page to Web to Page preserves the selected dimensions and margins');
+        pageDialog();$('#paper-size').value='Letter';$('#margin-preset').value='1';$('#margin-preset').dispatchEvent(new Event('change'));$('#apply-page').click();
+        check(near(paper.getBoundingClientRect().height,1056)&&getComputedStyle(paper).paddingLeft==='96px'&&$('#print-page-style').textContent.includes('size:8.5in 11in'),'Returning to Letter restores its size, margins and print setup');
+        const longSource=Array.from({length:90},(_,index)=>'Paragraph '+index+': '+('Long document content wraps naturally across the writing area. '.repeat(3))).join('\n\n');
+        setMode('source');sourceEditor.value=longSource;sourceEditor.dispatchEvent(new Event('input',{bubbles:true}));setMode('write');
+        await Promise.resolve();
+        check(paper.getBoundingClientRect().height>1056&&hasNoInnerScroll(paper)&&canvas.scrollHeight>canvas.clientHeight,'Long Letter documents grow and only the outer canvas scrolls');
+        canvas.scrollTop=canvas.scrollHeight;
+        const lastParagraph=paper.querySelector('p:last-child').getBoundingClientRect(),canvasBounds=canvas.getBoundingClientRect();
+        check(canvas.scrollTop>0&&paper.scrollTop===0&&lastParagraph.bottom<=canvasBounds.bottom+2&&lastParagraph.top>=canvasBounds.top,'Outer scrolling reaches the last paragraph without clipping or scrolling inside paper');
+        canvas.scrollTop=0;
+        for(const layout of ['web','page']){
+          setDocumentLayout(layout);
+          for(const view of ['write','source','split']){
+            setMode(view);await Promise.resolve();
+            check((view==='source'||hasNoInnerScroll(paper))&&(view==='write'||hasNoInnerScroll(sourceEditor))&&canvas.scrollHeight>canvas.clientHeight,layout+' '+view+' uses the outer scrollbar for the complete document');
+          }
+        }
+        setMode('source');sourceEditor.value='Short again.';sourceEditor.dispatchEvent(new Event('input',{bubbles:true}));await Promise.resolve();
+        check(sourceEditor.getBoundingClientRect().height<1500&&hasNoInnerScroll(sourceEditor),'Source height shrinks after deleting long content');
+        setMode('write');
+        check(near(paper.getBoundingClientRect().height,1056),'Deleting long content restores the Letter minimum height');
+        zoom(150);setInterfaceZoom(125);
+        check(near(paper.getBoundingClientRect().width,816*1.5*1.25)&&hasNoInnerScroll(paper),'Paper geometry and outer scrolling survive document and UI zoom');
+        zoom(100);setInterfaceZoom(100);setDocumentLayout(previousLayout);
+        const discardLayout=closeDocument(layoutDraft);$('#native-discard').click();await discardLayout;openFile(files.indexOf(file));
         // Actual second process, including relative paths, spaces, Unicode, and a duplicate.
         openDialog('Single-instance test','<p>Incoming files wait until this dialog closes.</p>');
         await invoke('smoke_launch_secondary');

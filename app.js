@@ -100,7 +100,7 @@ else{const tabs={File:[['file','New document','new'],['download','Save now','sav
 let selection=null;document.addEventListener('selectionchange',()=>{const s=window.getSelection();if(s.rangeCount&&$('#paper').contains(s.anchorNode))selection=s.getRangeAt(0).cloneRange()});
 function format(command,value){if(active<0){toast('Open or create a document first');return}if(mode==='source'){toast('Switch to Write or Split to format text');return}const target=selection?.cloneRange();$('#paper').focus();if(target&&$('#paper').contains(target.commonAncestorContainer)){let s=window.getSelection();s.removeAllRanges();s.addRange(target)}document.execCommand(command,false,value);save();$('#source').value=markdown($('#paper').innerHTML)}
 function insert(html){format('insertHTML',html)}
-function setMode(m){if(active<0)return;if(mode!=='source')$('#source').value=markdown($('#paper').innerHTML);mode=m;$('#editing-surface').className='editing-surface '+(m==='write'?'':m);$$('[data-mode]').forEach(b=>b.classList.toggle('selected',b.dataset.mode===m))}
+function setMode(m){if(active<0)return;if(mode!=='source')$('#source').value=markdown($('#paper').innerHTML);mode=m;$('#editing-surface').className='editing-surface '+(m==='write'?'':m);$$('[data-mode]').forEach(b=>b.classList.toggle('selected',b.dataset.mode===m));document.dispatchEvent(new Event('viewchange'))}
 function setInspection(v){inspection=v;$('#inspector').style.display='flex';$$('[data-inspect]').forEach(b=>b.classList.toggle('selected',b.dataset.inspect===v));renderInspector()}
 function openDialog(title,html){$('#dialog-title').textContent=title;$('#dialog-content').innerHTML=html;$('#dialog').showModal()}
 function download(){save();let blob=new Blob([markdown(files[active].html)],{type:'text/markdown;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=files[active].name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Markdown exported')}
@@ -119,6 +119,7 @@ function zoom(value){
  documentZoom=number;$('#zoom').value=Math.max(25,Math.min(200,number));$('#zoom').setAttribute('aria-valuetext',number+'%'+(number>200||number<25?' (custom)':''));
  $('#zoom-label').textContent=number+'%';$('#paper').style.setProperty('--zoom',number/100);$('#source').style.zoom=String(number/100);
  $('#zoom-in').disabled=number>=200;$('#zoom-out').disabled=number<=25;
+ document.dispatchEvent(new Event('viewchange'));
  try{localStorage.setItem('editor-md-document-zoom-v1',String(number))}catch{}
  return true;
 }

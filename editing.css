@@ -11,8 +11,12 @@
 .layout-switch button{font-size:10px;padding:4px 8px;color:var(--muted)}.layout-switch button.selected{background:var(--pale);color:var(--green)}
 .mode-switch{flex-shrink:0}
 @media screen{
+  .document-area,.canvas-scroll{min-height:0;min-width:0}
+  /* The canvas owns document scrolling. Paper grows instead of trapping text. */
+  .paper{height:auto;overflow:visible;overflow-wrap:anywhere}
+  #source{height:auto;resize:none;overflow:hidden}
   .document-area:not(.web-layout) .editing-surface:not(.source){width:max-content;min-width:100%;max-width:none;align-items:flex-start}
-  .document-area:not(.web-layout) .paper{flex:none;width:var(--page-width,816px);max-width:none;height:var(--page-height,1056px);min-height:0;padding:var(--page-top,96px) var(--page-right,96px) var(--page-bottom,96px) var(--page-left,96px);overflow:auto;overscroll-behavior:contain}
+  .document-area:not(.web-layout) .paper{flex:none;width:var(--page-width,816px);max-width:none;min-height:var(--page-height,1056px);padding:var(--page-top,96px) var(--page-right,96px) var(--page-bottom,96px) var(--page-left,96px)}
   .document-area:not(.web-layout) .split #source{flex:none;width:420px}
   .web-layout .ruler,.web-layout .page-caption{display:none}
   .web-layout .canvas-scroll{background:var(--paper);padding:30px clamp(18px,4vw,60px) 40px}

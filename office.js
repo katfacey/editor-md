@@ -259,7 +259,33 @@ function applyPage(){
   let printStyle=$('#print-page-style');
   if(!printStyle){printStyle=document.createElement('style');printStyle.id='print-page-style';document.head.append(printStyle)}
   printStyle.textContent=`@page {size:${width}in ${height}in;margin:${page.top}in ${page.right}in ${page.bottom}in ${page.left}in;}`;
+  scheduleSourceSize();
 }
+// Textareas do not grow with their contents by default. Keep Source/Split on
+// the same outer scrollbar, including after wrapping, zooming or changing tabs.
+let sourceSizePending=false;
+function scheduleSourceSize(){
+  if(sourceSizePending)return;
+  sourceSizePending=true;
+  queueMicrotask(()=>{
+    sourceSizePending=false;
+    const source=$('#source');
+    if(!source.getClientRects().length)return;
+    const canvas=$('#canvas-scroll'),top=canvas.scrollTop,left=canvas.scrollLeft;
+    source.style.height='0px';
+    const style=getComputedStyle(source);
+    source.style.height=(source.scrollHeight+parseFloat(style.borderTopWidth)+parseFloat(style.borderBottomWidth))+'px';
+    source.scrollTop=0;source.scrollLeft=0;
+    canvas.scrollTop=top;canvas.scrollLeft=left;
+  });
+}
+let sourceWidth=0;
+new ResizeObserver(entries=>{
+  const width=entries[0].contentRect.width;
+  if(width!==sourceWidth){sourceWidth=width;scheduleSourceSize();}
+}).observe($('#source'));
+$('#source').addEventListener('input',scheduleSourceSize);
+document.addEventListener('viewchange',scheduleSourceSize);
 function pageDialog(){
   const p={...defaultPage,...files[active].page};
   openDialog('Page setup',`<p class="dialog-intro">Page layout for this document and its PDF export.</p><div class="page-setup-grid"><div>
