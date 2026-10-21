@@ -1,0 +1,21 @@
+.sidebar-resizer{position:relative;flex:0 0 5px;cursor:col-resize;touch-action:none;z-index:3;outline:none;background:transparent}
+.sidebar-resizer:after{content:'';position:absolute;inset:0 1px;background:var(--line);transition:background .15s}
+.sidebar-resizer:hover:after,.sidebar-resizer:focus-visible:after,.resizing-sidebar .sidebar-resizer:after{background:var(--green)}
+.sidebar-resizer[hidden],.focus .sidebar-resizer{display:none!important}
+.resizing-sidebar,.resizing-sidebar *{cursor:col-resize!important;user-select:none!important}
+.ui-text-size-row{display:flex;align-items:center;gap:8px;margin:10px 0}
+.ui-text-size-row button{border:1px solid var(--line);padding:7px 12px}
+.ui-text-size-row output{min-width:4em;text-align:center;font-variant-numeric:tabular-nums}
+/* Text scaling ends at document content; physical pages and point sizes stay exact. */
+.paper,#source,.graph-preview{--ui-text-scale:1}
+@media screen{.ribbon{height:auto;min-height:100px}.ribbon-group{flex-shrink:0}.menubar,.titlebar,.statusbar{height:auto;min-height:36px}.inspector-tabs{flex-wrap:wrap}.navigator,.inspector{min-width:0}.paper img{max-width:none}.paper img:not([height]){height:auto}}
+@media print{.paper img{max-width:100%;height:auto}}
+.paper a[data-wiki-link]{color:var(--green);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.image-selection{position:fixed;border:1px solid var(--green);pointer-events:none;z-index:6}.image-selection[hidden]{display:none}
+.image-handle{position:absolute;width:12px;height:12px;padding:0;border:1px solid var(--green);background:var(--paper);border-radius:2px;pointer-events:auto;touch-action:none}
+.image-handle.nw{left:-6px;top:-6px;cursor:nwse-resize}.image-handle.ne{right:-6px;top:-6px;cursor:nesw-resize}.image-handle.sw{left:-6px;bottom:-6px;cursor:nesw-resize}.image-handle.se{right:-6px;bottom:-6px;cursor:nwse-resize}
+.image-selection-toolbar{display:flex;position:absolute;left:0;bottom:calc(100% + 8px);background:var(--surface);border:1px solid var(--line);border-radius:5px;pointer-events:auto;white-space:nowrap;box-shadow:var(--shadow)}
+.image-selection-toolbar button{font-size:calc(11px * var(--ui-text-scale,1));padding:7px 10px}.toolbar-below .image-selection-toolbar{bottom:auto;top:calc(100% + 8px)}
+dialog .image-aspect{display:flex;align-items:center;gap:9px}dialog .image-aspect input{width:auto;margin:0}
+@media print{.sidebar-resizer{display:none!important}}
+@media print{.image-selection{display:none!important}}

@@ -140,7 +140,9 @@ async function installProjectUI(api){
       try{
         if(!state.assets.has(key))state.assets.set(key,invoke('read_attachment',{id:file.id,target}).then(bytes=>{const extension=target.split(/[?#]/)[0].split('.').pop().toLowerCase();return URL.createObjectURL(new Blob([bytes],{type:{png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp'}[extension]||'application/octet-stream'}));}));
         const url=await state.assets.get(key);if(run!==assetRun||!image.isConnected||files[active]!==file)return;
-        image.src=url;image.classList.remove('attachment-error');image.removeAttribute('data-local-error');await image.decode();
+        if(image.getAttribute('src')!==url)image.src=url;
+        if(image.classList.contains('attachment-error'))image.classList.remove('attachment-error');
+        image.removeAttribute('data-local-error');await image.decode();
       }catch(error){if(run!==assetRun||!image.isConnected)return;image.classList.add('attachment-error');image.dataset.localError=String(error);state.assetErrors.push(target+': '+String(error));}
     }));
     if(run!==assetRun)return;assetStatus.hidden=!state.assetErrors.length;assetStatus.innerHTML=state.assetErrors.length+' image(s) could not load. <button id="attachment-details">Details</button>';
@@ -161,7 +163,7 @@ async function installProjectUI(api){
   const print=window.print;window.print=async()=>{await hydrateAssets();if(state.assetErrors.length){openDialog('Some images are unavailable','<p>'+escapeHtml(state.assetErrors.join('\n'))+'</p><button class="primary" id="print-anyway">Print without these images</button>');$('#print-anyway').onclick=()=>{$('#dialog').close();print();};return;}return print();};
   const download=downloadFile;downloadFile=async(name,content,type)=>{try{if(type.includes('html'))content=await embedExportImages(content);return await download(name,content,type);}catch(error){showError('Could not export attachment images',error);}};
   async function relativeLink(event){
-    const link=event.target.closest('a'),target=link?.getAttribute('href');if(!link||!ProjectModel.relative(target))return;
+    const link=event.target.closest('a'),target=link?.getAttribute('href');if(!link||link.hasAttribute('data-wiki-link')||!ProjectModel.relative(target))return;
     if(!event.ctrlKey&&!event.metaKey)return;
     event.preventDefault();event.stopImmediatePropagation();const file=files[active];if(!file?.nativePath)return toast('Save this document before opening relative links');
     try{if(/\.(md|markdown|mdown)(?:#.*)?$/i.test(target)){const doc=await invoke('open_relative_document',{id:file.id,target});adoptDocuments([doc]);}else await invoke('open_attachment',{id:file.id,target});}
@@ -177,19 +179,23 @@ async function installProjectUI(api){
       const button=document.createElement('button');button.className='large-tool';button.id='insert-local-attachment';button.innerHTML=icon('folder')+'Attachment';button.onclick=()=>insertAttachment(false);button.disabled=active<0;$('#ribbon .ribbon-row').append(button);
     }
   };
+  let insertingAttachment=false;
   async function insertAttachment(imageOnly){
+    if(insertingAttachment)return;
     const file=files[active];if(!file)return;
     if(!file.nativePath){toast('Save this document before adding a relative attachment');return;}
-    const caret=$('#source').selectionEnd;
+    const caret=$('#source').selectionEnd,range=selection?.cloneRange();
+    insertingAttachment=true;
     try{
       const result=await invoke('insert_attachment',{id:file.id,imageOnly});if(!result)return;
       if(files[active]!==file){toast('Attachment added to its folder. Return to '+file.name+' to insert it.');return;}
+      if(range&&$('#paper').contains(range.commonAncestorContainer))selection=range;
       if(mode==='source'){
         const source=$('#source'),label=result.name.replaceAll('\\','\\\\').replaceAll('[','\\[').replaceAll(']','\\]');
         const text=(result.image?'!':'')+'['+label+']('+result.target+')';source.setRangeText(text,caret,caret,'end');source.dispatchEvent(new Event('input',{bubbles:true}));
       }else insert(result.image?'<img src="'+escapeHtml(result.target)+'" alt="'+escapeHtml(result.name)+'">':'<a href="'+escapeHtml(result.target)+'">'+escapeHtml(result.name)+'</a>');
       await refreshFiles();toast('Inserted '+result.name);
-    }catch(error){showError('Could not insert attachment',error);}
+    }catch(error){showError('Could not insert attachment',error);}finally{insertingAttachment=false;}
   }
   officeActions.image=()=>insertAttachment(true);
   document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.shiftKey&&event.key.toLowerCase()==='f'&&!$('#dialog').open){event.preventDefault();event.stopImmediatePropagation();showSearch();}},true);
@@ -216,6 +222,37 @@ async function installProjectUI(api){
     check(html.includes('data:image/png;base64,')&&!html.includes('data-local-src='),'HTML export embeds relative images for use outside the app');
     const second=await invoke('open_relative_document',{id:first.id,target:'second.md'});adoptDocuments([second]);
     check(files[active].name==='second.md','Relative Markdown links open another document tab');
+    openFile(files.indexOf(first));setMode('source');$('#source').value=original+'\n[[second|Open Second]]\n';$('#source').dispatchEvent(new Event('input',{bubbles:true}));setMode('write');
+    const wiki=$('#paper a[data-wiki-link]');const tabsBefore=openDocuments.length;
+    wiki.dispatchEvent(new MouseEvent('dblclick',{bubbles:true,cancelable:true}));await until(()=>files[active].name==='second.md');
+    check(openDocuments.length===tabsBefore&&$('#paper h1').textContent==='Second','Double-clicking a wiki link activates the target editor tab without a duplicate');
+    let ambiguous=false;try{await invoke('open_wiki_document',{id:first.id,target:'../../workspace'});}catch{ambiguous=true;}
+    check(ambiguous,'Wiki resolution cannot escape the project folder');
+    openFile(files.indexOf(first));setMode('write');
+    const inserted=await invoke('insert_attachment',{id:first.id,imageOnly:true});
+    const range=document.createRange();range.selectNodeContents($('#paper'));range.collapse(false);selection=range;
+    insert('<p><img src="'+escapeHtml(inserted.target)+'" alt="Large imported image"></p>');
+    await hydrateAssets();await new Promise(resolve=>setTimeout(resolve,100));pagination.refresh();
+    const wide=$('#paper img[alt="Large imported image"]'),bounds=wide.getBoundingClientRect(),g=pagination.geometry,scale=$('#paper').getBoundingClientRect().width/g.width;
+    check(wide.naturalWidth===4096&&wide.naturalHeight===3072&&bounds.width/scale<=g.width-g.left-g.right+2&&bounds.height/scale<=g.bodyHeight+2,'Real 4096 × 3072 image import decodes and fits within Letter margins');
+    check(pagination.pageCount<20,'Large image insertion converges to a small finite page stack');
+    let loads=0;const loaded=()=>loads++;wide.addEventListener('load',loaded);await hydrateAssets();await hydrateAssets();await new Promise(resolve=>setTimeout(resolve,80));wide.removeEventListener('load',loaded);
+    check(loads===0,'Repeated attachment hydration does not restart image decoding or a layout loop');
+    wide.click();imageTools.properties();$('#image-width').value='312';$('#image-width').dispatchEvent(new Event('input',{bubbles:true}));$('#image-placement').value='center';$('#image-properties button[type=submit]').click();await hydrateAssets();pagination.refresh();
+    let resized=$('#paper img[alt="Large imported image"]');captureDocument();
+    check(resized.getAttribute('width')==='312'&&resized.getAttribute('height')==='234'&&resized.parentElement.style.textAlign==='center','Image properties resize proportionally and center the image on its own line');
+    check(sourceOf(first).includes('width="312"')&&sourceOf(first).includes(inserted.target)&&!sourceOf(first).includes('blob:'),'Image size and placement save as portable inline HTML with the original relative file path');
+    {$('#paper').focus();document.execCommand('undo');await hydrateAssets();check(!$('#paper img[alt="Large imported image"]').hasAttribute('width'),'Image size and placement can be undone');document.execCommand('redo');await hydrateAssets();check($('#paper img[alt="Large imported image"]').getAttribute('width')==='312','Image resizing supports redo');}
+    resized=$('#paper img[alt="Large imported image"]');imageTools.select(resized);imageTools.fitSelected();await hydrateAssets();pagination.refresh();
+    resized=$('#paper img[alt="Large imported image"]');
+    check(resized.getAttribute('width')==='624'&&resized.getAttribute('height')==='468'&&pagination.pageCount<20,'Fit to page uses the Letter writing area while retaining the image aspect ratio');
+    setDocumentLayout('web');await new Promise(resolve=>setTimeout(resolve,30));
+    check(resized.getBoundingClientRect().width<=$('#paper').getBoundingClientRect().width+2,'Imported wide pictures also fit continuous Web view');setDocumentLayout('page');
+    const sidebarWidths={...WorkspaceControls.widths};setDocumentLayout('web');WorkspaceControls.resize('left',500);WorkspaceControls.resize('right',500);await new Promise(resolve=>setTimeout(resolve,50));pagination.refresh();
+    const narrow=resized.getBoundingClientRect();
+    check(narrow.width<=$('#paper').getBoundingClientRect().width+2&&Math.abs(narrow.width/narrow.height-4/3)<.02,'Narrow Web layouts scale both image dimensions without distorting the saved proportions');
+    WorkspaceControls.resize('left',sidebarWidths.left);WorkspaceControls.resize('right',sidebarWidths.right);setDocumentLayout('page');
+    setMode('source');$('#source').value=original;$('#source').dispatchEvent(new Event('input',{bubbles:true}));setMode('write');
     let blocked=false;try{await invoke('read_attachment',{id:first.id,target:'../../workspace.json'});}catch{blocked=true;}
     check(blocked,'Relative attachment resolution cannot escape the selected project');
     openFile(files.indexOf(first));setMode('source');$('#source').value=original+'\nUnsaved live query.\n';$('#source').dispatchEvent(new Event('input',{bubbles:true}));

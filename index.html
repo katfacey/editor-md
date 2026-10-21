@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="office.css">
 <link rel="stylesheet" href="editing.css">
 <link rel="stylesheet" href="project.css">
+<link rel="stylesheet" href="workspace-controls.css">
 </head>
 <body>
 <div class="app">
@@ -23,7 +24,7 @@
   </div>
   <section class="ribbon" aria-label="Formatting toolbar" id="ribbon"></section>
   <main class="workspace">
-    <aside class="navigator">
+    <aside class="navigator" id="navigator">
       <div class="workspace-name"><span class="workspace-logo" data-icon="folder"></span><div>My workspace<small>LOCAL WORKSPACE</small></div><button title="New document" aria-label="New document" id="new-doc">+</button></div>
       <div class="sidebar-tabs"><button class="selected" data-side="files">Files</button><button data-side="outline">Outline</button><button data-side="bookmarks">Bookmarks</button></div>
       <div id="sidebar-content"></div>
@@ -35,7 +36,7 @@
       <div class="ruler" aria-hidden="true"><span>⌜</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>⌝</span></div>
       <div class="canvas-scroll" id="canvas-scroll">
         <div class="empty-document" id="empty-document" hidden><span data-icon="file"></span><h2>A little room for your next idea.</h2><p>Open a document from the workspace or create a fresh page.</p><button class="primary" id="empty-create">New document</button></div>
-        <div class="editing-surface" id="editing-surface"><textarea id="source" aria-label="Markdown source" spellcheck="false"></textarea><article class="paper" id="paper" aria-label="Document editor" contenteditable="true" spellcheck="true"></article></div>
+        <div class="editing-surface" id="editing-surface"><textarea id="source" aria-label="Markdown source" spellcheck="false"></textarea><div class="page-stack" id="page-stack"><div id="page-sheets" aria-hidden="true"></div><article class="paper" id="paper" aria-label="Document editor" contenteditable="true" spellcheck="true"></article></div></div>
         <div class="page-caption">A clear mind starts with a clear page.</div>
       </div>
     </section>
@@ -55,11 +56,18 @@
 <script src="view-settings.js"></script>
 <script src="document-state.js"></script>
 <script src="workspace-ui.js"></script>
+<script src="page-layout.js"></script>
+<script src="wiki-links.js"></script>
+<script src="font-manager.js"></script>
+<script src="image-tools.js"></script>
 <script src="app.js"></script>
 <script src="office.js"></script>
 <script src="chart-model.js"></script>
 <script src="graph-studio.js"></script>
 <script src="footnotes-ui.js"></script>
 <script src="project-ui.js"></script>
+<script src="pagination-checks.js"></script>
+<script src="feature-checks.js"></script>
+<script src="workspace-controls.js"></script>
 </body>
 </html>

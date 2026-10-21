@@ -34,7 +34,7 @@ Native filesystem monitoring watches the project recursively and folders contain
 - Deleted/moved files keep their open text and are treated as unsaved work, including during tab/application close. Save offers a new destination.
 - The original revision check still runs on disk saves, protecting against a change occurring before a watcher notification arrives.
 
-Folder/file rename tracking, automatic merging, and persistent version history are future milestones. Internal-link autocomplete, backlinks, properties, and the MCP server remain planned.
+Folder/file rename tracking, automatic merging, and persistent version history are future milestones. Wiki links are available from 0.2.0: double-click `[[Note]]`, `[[folder/Note]]` or `[[Note#Heading|Label]]` in Write view. Internal-link autocomplete, backlinks, properties, and the MCP server remain planned.
 
 ## Verification
 

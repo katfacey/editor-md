@@ -1,4 +1,4 @@
-param([string]$Version='0.1.3.1-beta-hotfix')
+param([string]$Version='0.2.0-beta.1')
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $projectRoot
@@ -11,7 +11,7 @@ New-Item -ItemType Directory -Force -Path $packageFolder | Out-Null
 $filename="Editor-MD-$Version-windows-x64.exe"
 Copy-Item -LiteralPath $binary -Destination (Join-Path $releaseFolder $filename)
 Copy-Item -LiteralPath $binary -Destination (Join-Path $packageFolder 'Editor-MD.exe')
-foreach($document in @('README.md','RELEASE-NOTES.md','THIRD_PARTY_NOTICES.txt','design/PROJECTS.md')){
+foreach($document in @('README.md','RELEASE-NOTES.md','THIRD_PARTY_NOTICES.txt','design/PROJECTS.md','samples/Pagination-stress-test.md')){
   $destination=Join-Path $packageFolder $document
   New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
   Copy-Item -LiteralPath (Join-Path $projectRoot $document) -Destination $destination

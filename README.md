@@ -2,7 +2,7 @@
 
 **A healthy place for your words.** A Windows Markdown editor with an office-style ribbon, a page canvas, a source editor, and an optional doctor mascot. MD means both *Markdown* and *doctor*.
 
-**0.1.3.1 Beta Hotfix** fixes nested document scrollbars and restores visible paper-size changes. It includes Beta 3's project folders, project-wide search, relative images and attachments, and live external-file change detection, plus the footnotes, tabbed file opening, zoom, and profile improvements from Beta 2. The application host and file services are written in **Rust with Tauri 2**; the shared interface uses HTML, CSS, and JavaScript. Its interface, fonts, mascot, icon, and Mermaid renderer are embedded in the executable. No Node.js, browser tab, local web server, account, or subscription is needed to use the desktop app.
+**0.2.0 Beta 1** adds Ctrl+wheel document zoom, resizable sidebars, separate UI text sizing, system and custom fonts, wiki links, and image sizing and placement. It also includes separate physical pages, project folders, search, relative attachments, footnotes, and safe tabbed file editing. The application host and file services are written in **Rust with Tauri 2**; the shared interface uses HTML, CSS, and JavaScript. Its interface, fonts, mascot, icon, and Mermaid renderer are embedded in the executable. No Node.js, browser tab, local web server, account, or subscription is needed to use the desktop app.
 
 ![Light and dark design reference](design/light-dark-comparison.png)
 
@@ -27,6 +27,10 @@ If its folder is read-only, workspace data falls back to the user's local applic
 | Open a project | **File → Open project**, or **Open project folder** above the sidebar; browse existing files and folders directly |
 | Search a project | **Search** in the sidebar, or **Ctrl+Shift+F**; searches filenames and Markdown text, including unopened files and pending edits |
 | Insert local images or attachments | Save the document, then use **Insert → Image** or **Insert → Attachment**; files outside the project are copied into its attachments folder |
+| Follow a wiki link | Write `[[Note]]`, `[[folder/Note]]`, or `[[Note#Heading\|Label]]`; **double-click** the rendered link to open the note in an editor tab |
+| Resize or position an image | Click the image and drag a corner; **Image…** opens width/height, aspect-ratio lock, and inline/left/center/right placement; **Fit to page** uses the writing area |
+| Choose document fonts | Home font menu lists installed families; **Custom… Load font file** opens a Windows picker for TTF/OTF files |
+| Resize the sidebars | Drag either divider beside the document; each sidebar retains its own width. Keyboard: focus the divider, then use arrow keys |
 | Open a relative link | **Ctrl+click** a Markdown link to open its document tab, or an attachment link to use its Windows default app |
 | Save to disk | **File → Save now**, or **Ctrl+S**; a new draft opens a native Save dialog |
 | Save another file | **File → Save as…**, or **Ctrl+Shift+S** |
@@ -34,8 +38,9 @@ If its folder is read-only, workspace data falls back to the user's local applic
 | Edit Markdown directly | **Source** or **Split** above the document; **Write** returns to the formatted editor |
 | Change the canvas | **Page / Web** above the document; **Layout → Page setup** changes paper size and margins |
 | Change appearance | Palette button: light/dark colors, **Show mascot**, opacity, and **Restore defaults** |
+| Resize UI text | **Appearance → UI text size → A− / A+** (9–24 px); independent of document font size, zoom, and sidebar widths |
 | Scale the interface | **Appearance → UI zoom** (50–200%); shared by light and dark mode |
-| Zoom the document | Bottom-right slider and buttons (25–200%); double-click the percentage for any positive custom zoom, including above 200% |
+| Zoom the document | **Ctrl+mouse wheel** over the document, or bottom-right slider and buttons (25–200%); double-click the percentage for any positive custom zoom, including above 200% |
 | Set your initials | Click the initials circle at the top right, or use **Appearance → Your initials** |
 | Add a footnote | Place the cursor or select text, open **Review → Footnotes**, write your note, optionally check **Append my initials**, then **Add footnote** |
 | Create graphs | **Insert → Graph studio**; edit chart data, flowchart nodes/connections, or Mermaid source |
@@ -43,11 +48,17 @@ If its folder is read-only, workspace data falls back to the user's local applic
 | Find recent work | Expand **Archive**; it lists recently created, edited, and opened documents |
 | Export or print | **Export** for a Markdown copy, styled HTML, or Print / PDF; select **Microsoft Print to PDF** in the system print interface |
 
+Custom fonts are validated and copied into **EditorMD-data/fonts**, loaded privately by the app, and restored at startup. Keep that folder with the executable when moving it. Fonts are not installed into Windows or embedded in Markdown; other readers need the same family or will use a fallback. Only import fonts you have permission to use.
+
+Wiki links resolve relative to the current file, then from the project root, then by a unique filename in the project. The `.md` extension is optional. Duplicate names require a folder path; missing notes display a message without creating files. Ordinary Markdown links retain Ctrl+click behavior.
+
+Image import and decoding run without blocking the interface. Pictures fit within page margins in Page view and within the document width in Web view. Explicit resizing and placement are saved using inline HTML, which other Markdown readers may handle differently.
+
 The **File → Autosave file** switch controls automatic disk writes for documents with a saved path. New drafts are recovered locally until you explicitly choose a filename. Turning autosave off keeps edits in the buffer and recovery workspace; Ctrl+S still saves. Closing the application prompts for unsaved work. Discarding restores the saved snapshot or removes a never-saved draft.
 
 Default page setup is **US Letter, 8.5 × 11 inches, with 1-inch margins**. Page/Web switching preserves page setup. Custom page settings are stored in an unobtrusive leading Markdown comment beginning with **editor-md-page**; ordinary readers hide it.
 
-The **outer document scrollbar** scrolls the complete document in Write, Split, and Source. Paper uses the selected width, margins, and minimum height, growing with long content rather than adding an internal scrollbar. Returning from Web to Page restores the selected paper setup; Layout → Page setup can change it to Letter, A4, Legal, or landscape.
+The **outer document scrollbar** moves between separate sheets in Page view. Each Letter sheet is exactly 8.5 × 11 inches at 100% zoom, with the selected margins and a visible gap between sheets. Long paragraphs and table rows flow onto subsequent sheets. Page setup also supports A4, Legal, landscape, and custom margins. Web remains continuous, and Source keeps the Markdown text editor. Returning to Page restores the selected paper setup. Oversized images and indivisible objects fit within the writing area on screen; their original dimensions remain in the document.
 
 Footnotes replace the old temporary comments panel. Each document owns its notes, saved as Markdown references such as `[^1]` and definitions such as `[^1]: A note. -KF`. Numbers follow the order of references: inserting between 3 and 4 creates a new 4 and shifts the old 4 to 5; deleting a note closes the gap. The panel supports editing, deletion, and jumping to references. The optional initials signature uses your current profile initials; existing signatures remain unchanged when you edit your profile. Notes also appear at the end of the formatted document and in HTML/PDF output. Other readers need the [Markdown footnote extension](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#footnotes) to render this syntax.
 
@@ -64,19 +75,19 @@ When a file changes outside the app, clean buffers reload automatically. Buffers
 - Combine familiar Writer-style tools with portable Markdown and an accessible source view.
 - Keep documents local, support safe saves and recovery, and work offline.
 - Provide useful typography, templates, page setup, diagrams, and PDF output without hiding the Markdown.
-- Grow toward styles, better tables, long-document navigation, true pagination, and reliable rich-text/source round trips.
+- Grow toward styles, better tables, long-document navigation, advanced pagination controls, and reliable rich-text/source round trips.
 - Add a local agent interface with revision-checked operations. The [Rust/MCP interface design](design/AGENT-INTERFACE.md) and [tool schemas](design/agent-tools.json) are prepared; **an MCP server is not implemented or running in this beta**.
 
 The [feature roadmap](design/FEATURES.md) distinguishes the broader intended Writer feature set from implemented features.
 
 ## Beta boundaries
 
-- This is an early beta, not a complete replacement for LibreOffice Writer. Advanced review, citations, Git integration, styles, and editable multipage pagination are unfinished. Footnotes print as an end-of-document list, rather than being placed automatically at the bottom of each printed page.
+- This is an early beta, not a complete replacement for LibreOffice Writer. Advanced review, citations, Git integration, styles, running headers/footers, repeated screen table headers, and widow/orphan controls are unfinished. Footnotes print as an end-of-document list, rather than being placed automatically at the bottom of each printed page.
 - Markdown opens with a GFM parser. Source text is retained verbatim through view changes and saves until it is edited. Editing the formatted **Write** view serializes the document back to Markdown and may normalize spacing or lose unsupported extensions. Use **Source** for syntax-sensitive documents.
 - Font color, point size, subscript/superscript, highlighting, and some paragraph formatting use inline HTML. Readers that strip HTML styles, including GitHub, may display them differently.
 - Mermaid source is portable to compatible readers; graph zoom and inspection are application features. PDF graphs are static.
 - Relative image preview and attachment import support files up to 32 MiB. Save as does not automatically rebase attachment paths when moving a document into another folder; keep copies in the original folder to retain their relative paths. Network images require a connection.
-- PDF output uses the system print interface and selected paper dimensions. The screen canvas is continuous paper that grows with content, rather than true editable multipage pagination.
+- PDF output uses the system print interface and selected paper dimensions. Page view now has editable, discrete sheets. Print uses the browser’s print layout, so exact line and table breaks may differ from the screen.
 - UTF-8 documents up to 20 MiB are supported. Native filesystem monitoring checks project files and open documents. Clean buffers reload, while changed-on-disk revisions block stale saves of pending edits. Refresh and refocusing the app also check for changes; automatic merging and rename tracking are not implemented.
 - Project browsing is limited to 10,000 entries and 32 folder levels, excluding dot-prefixed entries, dependency/build folders, application data, and symlinks/reparse points. Literal project search reports limits of 200 results overall, 20 text matches per file, and 128 MiB of searched content; advanced filters and saved searches remain planned.
 - Documents and recovery data are stored unencrypted on the local device. The app has no telemetry or cloud sync; remotely linked images may make network requests.
@@ -94,11 +105,13 @@ Install Node.js 22+, stable Rust for **x86_64-pc-windows-msvc**, the Microsoft C
 
 The executable is **src-tauri/target/release/editor-md.exe**. **scripts/build-windows.ps1** performs the offline-asset build and Rust release build. **scripts/package-release.ps1** creates the portable artifacts after validation.
 
-The built executable supports **--self-test** for a non-GUI file-service check and **--smoke-test** for an isolated, hidden native-WebView integration test. The latter writes a report in **EditorMD-smoke** beside the executable, checks actual paper geometry and scrolling, editing, footnotes, native saves, tab handling, project search, relative images, and actual filesystem watcher events, then exits automatically.
+The built executable supports **--self-test** for a non-GUI file-service check and **--smoke-test** for an isolated, hidden native-WebView integration test. The latter writes a report in **EditorMD-smoke** beside the executable, checks actual paper geometry and scrolling, zoom, sidebar resizing, UI text sizing, native fonts, wiki links, large image imports and resizing, editing, footnotes, native saves, tab handling, project search, relative images, and actual filesystem watcher events, then exits automatically.
 
-This hotfix is displayed and distributed as **0.1.3.1**. Cargo, Tauri, and npm use the equivalent SemVer-compatible package version **0.1.3-hotfix.1**.
+The release version is **0.2.0** across Rust, Tauri and npm. The portable ZIP includes **samples/Pagination-stress-test.md** for manual testing.
 
 Running **npm start** retains the [browser design preview](design/PROTOTYPE.md) at **http://127.0.0.1:4173**; the desktop app runs independently of that server.
+
+<p align="center"><img src="assets/mascot.png" width="320" alt="Editor, MD doctor mascot sitting on the navy and orange MD logo"></p>
 
 ## AI assistance and ownership
 

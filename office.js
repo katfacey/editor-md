@@ -43,18 +43,23 @@ function saveMascotSettings(){
   applyMascot();
 }
 readMascotSettings();applyMascot();
-const interfaceDefaults={zoom:100,initials:'KF'};
+const interfaceDefaults={zoom:100,textSize:13,initials:'KF'};
 let interfaceSettings={...interfaceDefaults};
 function readInterfaceSettings(){
   interfaceSettings={...interfaceDefaults};
   try{
     const value=JSON.parse(localStorage.getItem('editor-md-interface-v1'));
+    if(value&&ViewSettings.interfaceTextSize(value.textSize)!==null)interfaceSettings.textSize=Number(value.textSize);
     if(value&&ViewSettings.interfaceZoom(value.zoom)!==null)interfaceSettings.zoom=Number(value.zoom);
     if(value&&ViewSettings.initials(value.initials??'')!==null)interfaceSettings.initials=ViewSettings.initials(value.initials);
   }catch{}
 }
 function applyInterfaceSettings(){
   document.body.style.setProperty('--ui-scale',String(interfaceSettings.zoom/100));
+  document.body.style.setProperty('--ui-text-scale',String(interfaceSettings.textSize/13));
+  if($('#ui-text-size-value'))$('#ui-text-size-value').textContent=interfaceSettings.textSize+' px';
+  if($('#ui-text-smaller'))$('#ui-text-smaller').disabled=interfaceSettings.textSize<=9;
+  if($('#ui-text-larger'))$('#ui-text-larger').disabled=interfaceSettings.textSize>=24;
   $('#profile').textContent=interfaceSettings.initials;
   $('#profile').setAttribute('aria-label','Edit your initials ('+interfaceSettings.initials+')');
   const range=$('#ui-zoom'),number=$('#ui-zoom-number'),output=$('#ui-zoom-value'),initials=$('#profile-initials');
@@ -72,6 +77,7 @@ function setInterfaceZoom(value){
   const zoom=ViewSettings.interfaceZoom(value);if(zoom===null)return false;
   interfaceSettings.zoom=zoom;saveInterfaceSettings();return true;
 }
+function setInterfaceTextSize(value){const size=ViewSettings.interfaceTextSize(value);if(size===null)return false;interfaceSettings.textSize=size;saveInterfaceSettings();return true;}
 function setProfileInitials(value){
   const initials=ViewSettings.initials(value);if(initials===null)return false;
   interfaceSettings.initials=initials;saveInterfaceSettings();return true;
@@ -119,7 +125,7 @@ function appearanceDialog(){
       <div class="mascot-opacity-heading"><label for="ui-zoom">UI zoom</label><output id="ui-zoom-value" for="ui-zoom">100%</output></div>
       <div class="interface-zoom-row"><input id="ui-zoom" type="range" min="50" max="200" step="5" value="100"><input id="ui-zoom-number" aria-label="UI zoom percentage" type="number" min="50" max="200" step="any" value="100"><button id="reset-ui-zoom" type="button">100%</button></div>
       <p>Resize toolbars, panels, and dialogs in both modes. Document zoom and printed page size stay separate.</p>
-      <label for="profile-initials">Your initials (1–4 characters)</label><input id="profile-initials" maxlength="8" autocomplete="off">
+      <label>UI text size</label><div class="ui-text-size-row"><button type="button" id="ui-text-smaller" aria-label="Decrease UI text size">A−</button><output id="ui-text-size-value">13 px</output><button type="button" id="ui-text-larger" aria-label="Increase UI text size">A+</button><button type="button" id="reset-ui-text">Reset</button></div><p>Changes interface text only. Document fonts, page zoom, and sidebar widths stay as set.</p><label for="profile-initials">Your initials (1–4 characters)</label><input id="profile-initials" maxlength="8" autocomplete="off">
       <p id="interface-error" class="validation-error" role="alert"></p>
     </fieldset>
     <fieldset class="mascot-settings"><legend>App background</legend>
@@ -132,7 +138,7 @@ function appearanceDialog(){
     <div class="dialog-actions"><button id="reset-appearance" aria-describedby="appearance-reset-status">Restore defaults</button><button class="primary" id="done-colors">Done</button></div>`);
   let editing=current;
   function resetHint(){
-    $('#appearance-reset-status').textContent='Restores this mode’s colors, shared mascot (shown at 20%), and UI zoom (100%). Your initials stay unchanged.';
+    $('#appearance-reset-status').textContent='Restores this mode’s colors, shared mascot (shown at 20%), UI zoom (100%), and UI text (13 px). Your initials stay unchanged.';
   }
   function paint(){
     resetHint();
@@ -154,20 +160,23 @@ function appearanceDialog(){
   }
   $('#reset-appearance').onclick=()=>{
     const defaults=appearanceDefaults[editing];
-    const unchanged=appearance[editing].main===defaults.main&&appearance[editing].accent===defaults.accent&&mascotSettings.visible===mascotDefaults.visible&&mascotSettings.opacity===mascotDefaults.opacity&&interfaceSettings.zoom===interfaceDefaults.zoom;
+    const unchanged=appearance[editing].main===defaults.main&&appearance[editing].accent===defaults.accent&&mascotSettings.visible===mascotDefaults.visible&&mascotSettings.opacity===mascotDefaults.opacity&&interfaceSettings.zoom===interfaceDefaults.zoom&&interfaceSettings.textSize===interfaceDefaults.textSize;
     appearance[editing]=structuredClone(defaults);
     mascotSettings={...mascotDefaults};
-    interfaceSettings.zoom=interfaceDefaults.zoom;
+    interfaceSettings.zoom=interfaceDefaults.zoom;interfaceSettings.textSize=interfaceDefaults.textSize;
     persist();saveMascotSettings();saveInterfaceSettings();
     const mode=editing==='dark'?'Dark':'Light';
     $('#appearance-reset-status').textContent=unchanged
-      ?mode+' mode is already at its defaults: mascot shown at 20%, UI zoom at 100%.'
-      :mode+' mode colors restored. Shared mascot shown at 20%, UI zoom reset to 100%.';
+      ?mode+' mode is already at its defaults: mascot shown at 20%, UI zoom at 100%, UI text at 13 px.'
+      :mode+' mode colors restored. Shared mascot shown at 20%, UI zoom reset to 100%, UI text reset to 13 px.';
   };
   $('#show-mascot').onchange=e=>{mascotSettings.visible=e.target.checked;saveMascotSettings();resetHint()};
   $('#mascot-opacity').oninput=e=>{mascotSettings.opacity=Number(e.target.value);saveMascotSettings();resetHint()};
   $('#ui-zoom').oninput=event=>{setInterfaceZoom(event.target.value);resetHint()};
   $('#ui-zoom-number').onchange=event=>{if(!setInterfaceZoom(event.target.value)){$('#interface-error').textContent='UI zoom must be between 50% and 200%.';applyInterfaceSettings()}else $('#interface-error').textContent='';resetHint()};
+  $('#ui-text-smaller').onclick=()=>setInterfaceTextSize(interfaceSettings.textSize-1);
+  $('#ui-text-larger').onclick=()=>setInterfaceTextSize(interfaceSettings.textSize+1);
+  $('#reset-ui-text').onclick=()=>setInterfaceTextSize(13);
   $('#reset-ui-zoom').onclick=()=>{setInterfaceZoom(100);resetHint()};
   $('#profile-initials').onchange=event=>{if(!setProfileInitials(event.target.value)){$('#interface-error').textContent='Enter 1–4 non-space characters for your initials.';applyInterfaceSettings()}else $('#interface-error').textContent=''};
   applyMascot();applyInterfaceSettings();
@@ -243,6 +252,7 @@ function fontColorDialog(){
 
 const defaultPage={size:'Letter',orientation:'portrait',top:1,bottom:1,left:1,right:1};
 const pageSizes={Letter:[8.5,11],A4:[8.2677,11.6929],Legal:[8.5,14]};
+let pagination=null;
 function applyPage(){
   if(active<0)return;
   const page={...defaultPage,...files[active].page};
@@ -250,7 +260,7 @@ function applyPage(){
   if(page.orientation==='landscape')[width,height]=[height,width];
   // CSS uses 96 pixels per inch, so paper, type and margins share one scale.
   const scale=96;
-  const paper=$('#paper');
+  const paper=$('#page-stack');
   paper.style.setProperty('--page-width',width*scale+'px');
   paper.style.setProperty('--page-top',page.top*scale+'px');paper.style.setProperty('--page-bottom',page.bottom*scale+'px');
   paper.style.setProperty('--page-left',page.left*scale+'px');paper.style.setProperty('--page-right',page.right*scale+'px');
@@ -260,6 +270,7 @@ function applyPage(){
   if(!printStyle){printStyle=document.createElement('style');printStyle.id='print-page-style';document.head.append(printStyle)}
   printStyle.textContent=`@page {size:${width}in ${height}in;margin:${page.top}in ${page.right}in ${page.bottom}in ${page.left}in;}`;
   scheduleSourceSize();
+  pagination?.schedule();
 }
 // Textareas do not grow with their contents by default. Keep Source/Split on
 // the same outer scrollbar, including after wrapping, zooming or changing tabs.
@@ -306,7 +317,7 @@ function pageDialog(){
 function downloadFile(name,content,type){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function exportDialog(){
   openDialog('Export document',`<div class="export-choices"><button data-export="markdown">${icon('code')}<span><strong>Markdown (.md)</strong><small>Portable text and Mermaid source. Rich text uses inline HTML.</small></span></button><button data-export="html">${icon('file')}<span><strong>Styled document (.html)</strong><small>Preserves text styling and static graph artwork.</small></span></button><button data-export="pdf">${icon('print')}<span><strong>PDF / Print</strong><small>Uses the system print dialog. Choose Save as PDF.</small></span></button></div><p class="format-note">Text color and page margins are included in PDF. Graphs become static artwork. Screen theme colors do not change printed page colors.</p>`);
-  $$('[data-export]').forEach(b=>b.onclick=()=>{const type=b.dataset.export;$('#dialog').close();if(type==='pdf'){applyPage();window.print();return}if(type==='markdown'){download();return}const html=$('#paper').cloneNode(true);html.querySelectorAll('.graph-controls').forEach(e=>e.remove());html.querySelectorAll('.diagram-image').forEach(e=>e.removeAttribute('style'));const p={...defaultPage,...files[active].page};downloadFile(files[active].name.replace(/\.md$/i,'')+'.html','<!doctype html><meta charset="utf-8"><title>'+escapeHtml(files[active].name)+'</title><style>body{background:white;color:#28332f;font:12pt/1.7 Georgia;max-width:8.5in;margin:auto;padding:'+p.top+'in '+p.right+'in '+p.bottom+'in '+p.left+'in}h1{font-size:30pt}blockquote{border-left:3px solid #777;padding-left:20px}svg{max-width:100%;height:auto}table{border-collapse:collapse}td,th{border:1px solid #aaa;padding:8px}.graph-source{display:none}@media print{body{padding:0}}</style>'+html.innerHTML,'text/html');toast('Styled document exported')});
+  $$('[data-export]').forEach(b=>b.onclick=()=>{const type=b.dataset.export;$('#dialog').close();if(type==='pdf'){applyPage();window.print();return}if(type==='markdown'){download();return}const html=PageLayout.clean($('#paper').cloneNode(true));html.querySelectorAll('.graph-controls').forEach(e=>e.remove());html.querySelectorAll('.diagram-image').forEach(e=>e.removeAttribute('style'));const p={...defaultPage,...files[active].page};downloadFile(files[active].name.replace(/\.md$/i,'')+'.html','<!doctype html><meta charset="utf-8"><title>'+escapeHtml(files[active].name)+'</title><style>body{background:white;color:#28332f;font:12pt/1.7 Georgia;max-width:8.5in;margin:auto;padding:'+p.top+'in '+p.right+'in '+p.bottom+'in '+p.left+'in}h1{font-size:30pt}blockquote{border-left:3px solid #777;padding-left:20px}svg{max-width:100%;height:auto}table{border-collapse:collapse}td,th{border:1px solid #aaa;padding:8px}.graph-source{display:none}@media print{body{padding:0}}</style>'+html.innerHTML,'text/html');toast('Styled document exported')});
 }
 // Layout is a viewing preference; page metadata still controls print/export.
 let documentLayout='page';
@@ -351,4 +362,12 @@ window.addEventListener('beforeunload',e=>{if(documentState.anyDirty()){e.preven
 $('#export').onclick=exportDialog;
 document.addEventListener('documentchange',applyPage);
 $('#dialog').addEventListener('close',()=>{$('#dialog').classList.remove('graph-studio')});
+pagination=PageLayout.install({paper:$('#paper'),stack:$('#page-stack'),sheets:$('#page-sheets'),canvas:$('#canvas-scroll'),getPage:()=>({...defaultPage,...files[active]?.page}),isPaged:()=>active>=0&&documentLayout==='page'&&mode!=='source'});
+window.EditorPagination=pagination;
+document.addEventListener('paginationchange',()=>{
+  if(!pagination.active||active<0)return;
+  const p={...defaultPage,...files[active].page},g=pagination.geometry;
+  $('.page-caption').textContent=p.size+' · '+Number((g.width/96).toFixed(2))+' × '+Number((g.height/96).toFixed(2))+' in · '+pagination.pageCount+' '+(pagination.pageCount===1?'page':'pages');
+  if(inspection==='details')renderInspector();
+});
 applyAppearance();applyPage();setDocumentLayout(documentLayout);ribbon('Home');updateSaveState();

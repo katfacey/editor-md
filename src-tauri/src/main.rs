@@ -16,9 +16,10 @@ use std::{
     },
 };
 use tauri::{Emitter, Manager};
+mod font_commands;
 mod project_commands;
 
-// Cargo uses SemVer; the hotfix is displayed as the requested 0.1.3.1.
+// Cargo uses SemVer; display Windows-style hotfix versions such as 0.1.3.2.
 fn display_version() -> String {
     env!("CARGO_PKG_VERSION").replace("-hotfix.", ".")
 }
@@ -490,7 +491,7 @@ fn main() {
                 "main",
                 tauri::WebviewUrl::App("index.html".into()),
             )
-            .title(format!("Editor, MD — {} Beta Hotfix", display_version()))
+            .title(format!("Editor, MD — {} Beta", display_version()))
             .inner_size(1440.0, 960.0)
             .min_inner_size(800.0, 600.0)
             .visible(!isolated)
@@ -517,6 +518,9 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             bootstrap,
+            font_commands::list_fonts,
+            font_commands::import_custom_font,
+            font_commands::read_custom_font,
             take_pending_documents,
             open_documents,
             save_document,
@@ -538,6 +542,7 @@ fn main() {
             project_commands::check_documents,
             project_commands::read_attachment,
             project_commands::open_relative_document,
+            project_commands::open_wiki_document,
             project_commands::open_attachment,
             project_commands::insert_attachment,
             project_commands::smoke_project

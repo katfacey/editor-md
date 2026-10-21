@@ -207,6 +207,53 @@ pub fn project_file(root: &Path, relative: &str) -> Result<PathBuf, String> {
     Ok(target)
 }
 
+// Relative first, then project-relative, then a unique basename in the project.
+pub fn wiki_file(root: &Path, document: Option<&Path>, target: &str) -> Result<PathBuf, String> {
+    let target = target.trim().replace('\\', "/");
+    if target.is_empty()
+        || target.contains(':')
+        || target.chars().any(char::is_control)
+        || Path::new(&target).is_absolute()
+    {
+        return Err("Use a note name or a relative Markdown path.".into());
+    }
+    let target = if Path::new(&target).extension().is_none() {
+        format!("{target}.md")
+    } else {
+        target
+    };
+    if !markdown_file(Path::new(&target)) {
+        return Err("Wiki links open Markdown notes. Use an ordinary link for attachments.".into());
+    }
+    let root = fs::canonicalize(root).map_err(|e| e.to_string())?;
+    if let Some(folder) = document.and_then(Path::parent) {
+        if let Ok(path) = fs::canonicalize(folder.join(&target)) {
+            if path.starts_with(&root) && markdown_file(&path) {
+                return Ok(path);
+            }
+        }
+    }
+    if let Ok(path) = project_file(&root, &target) {
+        return Ok(path);
+    }
+    if target.contains('/') {
+        return Err(format!("Note not found inside this project: {target}"));
+    }
+    let project = scan(&root)?;
+    let matches: Vec<_> = project
+        .entries
+        .iter()
+        .filter(|entry| entry.kind == "markdown" && entry.name.eq_ignore_ascii_case(&target))
+        .collect();
+    match matches.as_slice() {
+        [entry] => project_file(&root, &entry.path),
+        [] => Err(format!("Note not found: {target}")),
+        _ => Err(format!(
+            "More than one note is named {target}. Include its folder in the link."
+        )),
+    }
+}
+
 pub fn attachment_bytes(path: &Path) -> Result<Vec<u8>, String> {
     let mut bytes = Vec::new();
     fs::File::open(path)
@@ -522,4 +569,37 @@ mod tests {
         assert_eq!(result.hits.len(), 20);
         assert!(search(temp.path(), &"x".repeat(513), false, vec![]).is_err());
     }
+}
+#[test]
+fn wiki_links_resolve_relative_root_and_unique_names_and_reject_ambiguity() {
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path();
+    fs::create_dir_all(path.join("notes/nested")).unwrap();
+    fs::create_dir_all(path.join("other")).unwrap();
+    for name in [
+        "notes/start.md",
+        "notes/local.md",
+        "root.md",
+        "notes/nested/Unique.md",
+        "notes/duplicate.md",
+        "other/duplicate.md",
+    ] {
+        fs::write(path.join(name), "# Note").unwrap();
+    }
+    let doc = path.join("notes/start.md");
+    assert!(wiki_file(path, Some(&doc), "local")
+        .unwrap()
+        .ends_with("notes/local.md"));
+    assert!(wiki_file(path, Some(&doc), "root")
+        .unwrap()
+        .ends_with("root.md"));
+    assert!(wiki_file(path, Some(&doc), "Unique")
+        .unwrap()
+        .ends_with("notes/nested/Unique.md"));
+    assert!(wiki_file(path, None, "duplicate")
+        .unwrap_err()
+        .contains("More than one"));
+    assert!(wiki_file(path, Some(&doc), "../../outside").is_err());
+    assert!(wiki_file(path, Some(&doc), "C:/outside").is_err());
+    assert!(wiki_file(path, Some(&doc), "image.png").is_err());
 }

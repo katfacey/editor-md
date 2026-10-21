@@ -17,6 +17,10 @@ test('UI zoom validates separately from document zoom',()=>{
   assert.equal(settings.interfaceZoom(1600),null);
   assert.equal(settings.interfaceZoom(49),null);
 });
+test('UI text sizing is bounded and sidebar widths retain useful minimums',()=>{
+  assert.equal(settings.interfaceTextSize(15),15);assert.equal(settings.interfaceTextSize(8),null);assert.equal(settings.interfaceTextSize(13.5),null);
+  assert.equal(settings.sidebarWidth(300,500),300);assert.equal(settings.sidebarWidth(900,500),500);assert.equal(settings.sidebarWidth(80,500),160);
+});
 test('initials normalize spaces and case, support Unicode, and reject empty or oversized labels',()=>{
   assert.equal(settings.initials(' a b '),'AB');
   assert.equal(settings.initials('Éd'),'ÉD');

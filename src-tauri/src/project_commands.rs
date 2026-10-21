@@ -276,7 +276,11 @@ pub(crate) async fn read_attachment(
     if project::image_mime(&path).is_none() {
         return Err("Inline preview supports PNG, JPEG, GIF, and WebP images.".into());
     }
-    Ok(tauri::ipc::Response::new(project::attachment_bytes(&path)?))
+    tauri::async_runtime::spawn_blocking(move || {
+        project::attachment_bytes(&path).map(tauri::ipc::Response::new)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 #[tauri::command]
 pub(crate) async fn open_relative_document(
@@ -290,6 +294,46 @@ pub(crate) async fn open_relative_document(
         let _ = app.emit("native-watch-error", error);
     }
     Ok(document)
+}
+#[tauri::command]
+pub(crate) async fn open_wiki_document(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Services>,
+    id: Option<String>,
+    target: String,
+) -> Result<DiskDocument, String> {
+    let document = id
+        .as_deref()
+        .and_then(|id| state.handles.lock().ok()?.get(id).cloned());
+    let root = state
+        .project
+        .root
+        .lock()
+        .map_err(|e| e.to_string())?
+        .clone()
+        .filter(|root| {
+            document
+                .as_ref()
+                .map(|doc| doc.starts_with(root))
+                .unwrap_or(true)
+        })
+        .or_else(|| {
+            document
+                .as_deref()
+                .and_then(Path::parent)
+                .map(Path::to_path_buf)
+        })
+        .ok_or("Open a project folder or save this document to resolve wiki links.")?;
+    let path = tauri::async_runtime::spawn_blocking(move || {
+        project::wiki_file(&root, document.as_deref(), &target)
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    let doc = register_document(&state, &path)?;
+    if let Err(error) = refresh_watches(&app) {
+        let _ = app.emit("native-watch-error", error);
+    }
+    Ok(doc)
 }
 #[tauri::command]
 pub(crate) async fn open_attachment(
@@ -363,25 +407,37 @@ pub(crate) async fn insert_attachment(
         .filter(|root| document.starts_with(root))
         .or_else(|| document.parent().map(Path::to_path_buf))
         .ok_or("Missing document folder")?;
-    let mut dialog = rfd::FileDialog::new().set_title(if image_only {
-        "Insert image"
-    } else {
-        "Insert attachment"
-    });
-    if image_only {
-        dialog = dialog.add_filter("Images", &["png", "jpg", "jpeg", "gif", "webp"]);
-    }
-    let Some(picked) = dialog.pick_file() else {
-        return Ok(None);
-    };
-    let picked = fs::canonicalize(picked).map_err(|e| e.to_string())?;
-    if image_only && project::image_mime(&picked).is_none() {
-        return Err("Choose a PNG, JPEG, GIF, or WebP image.".into());
-    }
-    Ok(Some(
-        serde_json::to_value(project::import_attachment(&root, &document, &picked)?)
-            .map_err(|e| e.to_string())?,
-    ))
+    let data_root = state.root.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut dialog = rfd::FileDialog::new().set_title(if image_only {
+            "Insert image"
+        } else {
+            "Insert attachment"
+        });
+        if image_only {
+            dialog = dialog.add_filter("Images", &["png", "jpg", "jpeg", "gif", "webp"]);
+        }
+        let chosen = if std::env::args().any(|arg| arg == "--smoke-test") {
+            let path = data_root.join("wide-image.png");
+            atomic_write(&path, include_bytes!("../../tests/fixtures/wide-image.png"))?;
+            Some(path)
+        } else {
+            dialog.pick_file()
+        };
+        let Some(picked) = chosen else {
+            return Ok(None);
+        };
+        let picked = fs::canonicalize(picked).map_err(|e| e.to_string())?;
+        if image_only && project::image_mime(&picked).is_none() {
+            return Err("Choose a PNG, JPEG, GIF, or WebP image.".into());
+        }
+        Ok(Some(
+            serde_json::to_value(project::import_attachment(&root, &document, &picked)?)
+                .map_err(|e| e.to_string())?,
+        ))
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]

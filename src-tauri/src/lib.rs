@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+pub mod fonts;
 pub mod project;
 use std::{
     fs,
