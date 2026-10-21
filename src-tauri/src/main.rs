@@ -16,6 +16,7 @@ use std::{
     },
 };
 use tauri::{Emitter, Manager};
+mod project_commands;
 
 struct Services {
     root: PathBuf,
@@ -23,6 +24,7 @@ struct Services {
     closing: AtomicBool,
     frontend_ready: AtomicBool,
     pending_paths: Arc<Mutex<Vec<PathBuf>>>,
+    project: project_commands::ProjectServices,
 }
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -89,8 +91,15 @@ fn pending_documents(state: &Services) -> Result<Value, String> {
     Ok(json!({"documents":documents,"errors":errors}))
 }
 #[tauri::command]
-async fn take_pending_documents(state: tauri::State<'_, Services>) -> Result<Value, String> {
-    pending_documents(&state)
+async fn take_pending_documents(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Services>,
+) -> Result<Value, String> {
+    let result = pending_documents(&state);
+    if let Err(error) = project_commands::refresh_watches(&app) {
+        let _ = app.emit("native-watch-error", error);
+    }
+    result
 }
 
 #[tauri::command]
@@ -156,7 +165,10 @@ async fn bootstrap(state: tauri::State<'_, Services>) -> Result<Value, String> {
 }
 
 #[tauri::command]
-async fn open_documents(state: tauri::State<'_, Services>) -> Result<Vec<DiskDocument>, String> {
+async fn open_documents(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Services>,
+) -> Result<Vec<DiskDocument>, String> {
     let paths = rfd::FileDialog::new()
         .set_title("Open Markdown")
         .add_filter("Markdown", &["md", "markdown", "mdown"])
@@ -166,11 +178,15 @@ async fn open_documents(state: tauri::State<'_, Services>) -> Result<Vec<DiskDoc
     for path in paths {
         docs.push(register_document(&state, &path)?);
     }
+    if let Err(error) = project_commands::refresh_watches(&app) {
+        let _ = app.emit("native-watch-error", error);
+    }
     Ok(docs)
 }
 
 #[tauri::command]
 async fn save_document(
+    app: tauri::AppHandle,
     state: tauri::State<'_, Services>,
     id: String,
     name: String,
@@ -228,6 +244,9 @@ async fn save_document(
         .lock()
         .map_err(|e| e.to_string())?
         .insert(id.clone(), path.clone());
+    if let Err(error) = project_commands::refresh_watches(&app) {
+        let _ = app.emit("native-watch-error", error);
+    }
     Ok(Some(DiskDocument {
         id,
         name: path
@@ -304,6 +323,9 @@ fn print_document(window: tauri::WebviewWindow) -> Result<(), String> {
 #[tauri::command]
 fn desktop_ready(app: tauri::AppHandle, state: tauri::State<'_, Services>) {
     state.frontend_ready.store(true, Ordering::SeqCst);
+    if let Err(error) = project_commands::refresh_watches(&app) {
+        let _ = app.emit("native-watch-error", error);
+    }
     if state
         .pending_paths
         .lock()
@@ -456,6 +478,7 @@ fn main() {
                 closing: AtomicBool::new(false),
                 frontend_ready: AtomicBool::new(false),
                 pending_paths: pending.clone(),
+                project: project_commands::ProjectServices::default(),
             });
             let window = tauri::WebviewWindowBuilder::new(
                 app,
@@ -499,7 +522,20 @@ fn main() {
             desktop_ready,
             smoke_result,
             smoke_external_change,
-            smoke_launch_secondary
+            smoke_launch_secondary,
+            project_commands::open_project,
+            project_commands::restore_project,
+            project_commands::refresh_project,
+            project_commands::close_project,
+            project_commands::open_project_document,
+            project_commands::reload_document,
+            project_commands::search_project,
+            project_commands::check_documents,
+            project_commands::read_attachment,
+            project_commands::open_relative_document,
+            project_commands::open_attachment,
+            project_commands::insert_attachment,
+            project_commands::smoke_project
         ])
         .run(context)
         .expect("Could not start Editor, MD. Ensure the Microsoft WebView2 Runtime is installed.");

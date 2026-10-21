@@ -26,5 +26,5 @@ for(const [key,value] of Object.entries(lock.packages)){
 const metadata=JSON.parse(execFileSync('cargo',['metadata','--manifest-path','src-tauri/Cargo.toml','--format-version','1','--locked','--offline','--filter-platform','x86_64-pc-windows-msvc'],{encoding:'utf8',maxBuffer:20*1024*1024,windowsHide:true}));
 for(const pkg of metadata.packages.filter(pkg=>pkg.source))await addPackage(pkg.name,pkg.version,pkg.license,path.dirname(pkg.manifest_path),'https://crates.io/crates/'+pkg.name+'/'+pkg.version);
 for(const name of ['dmsans','librebaskerville'])entries.push('\n'+'='.repeat(72)+'\n'+name+' font license\n'+await readFile('assets/fonts/'+name+'-OFL.txt','utf8'));
-await writeFile('THIRD_PARTY_NOTICES.txt',entries.join('\n'));
+await writeFile('THIRD_PARTY_NOTICES.txt',entries.join('\n').replace(/[ \t]+$/gm,''));
 console.log('Wrote third-party license notices.');

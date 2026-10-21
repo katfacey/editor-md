@@ -2,7 +2,7 @@
 
 **A healthy place for your words.** A Windows Markdown editor with an office-style ribbon, a page canvas, a source editor, and an optional doctor mascot. MD means both *Markdown* and *doctor*.
 
-**0.1.2 Beta 2** adds document footnotes, opening Explorer files as tabs, flexible document zoom, interface scaling, and editable initials. The application host and file services are written in **Rust with Tauri 2**; the shared interface uses HTML, CSS, and JavaScript. Its interface, fonts, mascot, icon, and Mermaid renderer are embedded in the executable. No Node.js, browser tab, local web server, account, or subscription is needed to use the desktop app.
+**0.1.3 Beta 3** adds project folders, project-wide search, relative images and attachments, and live external-file change detection. It includes the footnotes, tabbed file opening, zoom, and profile improvements from Beta 2. The application host and file services are written in **Rust with Tauri 2**; the shared interface uses HTML, CSS, and JavaScript. Its interface, fonts, mascot, icon, and Mermaid renderer are embedded in the executable. No Node.js, browser tab, local web server, account, or subscription is needed to use the desktop app.
 
 ![Light and dark design reference](design/light-dark-comparison.png)
 
@@ -24,6 +24,10 @@ If its folder is read-only, workspace data falls back to the user's local applic
 | --- | --- |
 | Create a document | Click **+**, or press **Ctrl+N** |
 | Open Markdown | **File → Open…**, or **Ctrl+O**; Explorer files opened with this executable join the existing window as tabs |
+| Open a project | **File → Open project**, or **Open project folder** above the sidebar; browse existing files and folders directly |
+| Search a project | **Search** in the sidebar, or **Ctrl+Shift+F**; searches filenames and Markdown text, including unopened files and pending edits |
+| Insert local images or attachments | Save the document, then use **Insert → Image** or **Insert → Attachment**; files outside the project are copied into its attachments folder |
+| Open a relative link | **Ctrl+click** a Markdown link to open its document tab, or an attachment link to use its Windows default app |
 | Save to disk | **File → Save now**, or **Ctrl+S**; a new draft opens a native Save dialog |
 | Save another file | **File → Save as…**, or **Ctrl+Shift+S** |
 | Close a tab | Its **×**, or **Ctrl+W**; unsaved work offers Save / Don't save / Cancel |
@@ -49,6 +53,10 @@ When updating, close the old app and place the new executable beside its existin
 
 The default light theme uses warm paper and green accents. Dark mode uses navy and orange. Mascot visibility and opacity are shared by both modes, defaulting to **shown at 20%**. The image fits the entire application and sits behind opaque document surfaces. It is excluded from document exports.
 
+Project folders are optional; individual files still work. The last project is remembered. Local PNG, JPEG, GIF, and WebP images resolve relative to the saved document, within the project folder (or its containing folder for individual files). Markdown retains those relative paths; HTML export embeds the images, and Print/PDF waits for them to load. See the [project and attachment guide](design/PROJECTS.md) for limits and examples.
+
+When a file changes outside the app, clean buffers reload automatically. Buffers with unsaved edits keep their text and offer **Review**, **Save as**, and an explicit reload choice. Moved/deleted files keep their open text and require saving before close. The saved-revision check remains active to protect changes that arrive before a watcher notification.
+
 ## Project goals
 
 - Combine familiar Writer-style tools with portable Markdown and an accessible source view.
@@ -65,9 +73,10 @@ The [feature roadmap](design/FEATURES.md) distinguishes the broader intended Wri
 - Markdown opens with a GFM parser. Source text is retained verbatim through view changes and saves until it is edited. Editing the formatted **Write** view serializes the document back to Markdown and may normalize spacing or lose unsupported extensions. Use **Source** for syntax-sensitive documents.
 - Font color, point size, subscript/superscript, highlighting, and some paragraph formatting use inline HTML. Readers that strip HTML styles, including GitHub, may display them differently.
 - Mermaid source is portable to compatible readers; graph zoom and inspection are application features. PDF graphs are static.
-- Images pasted/inserted through the editor are embedded. Local relative-image resolution and richer image management are not implemented; network images require a connection.
+- Relative image preview and attachment import support files up to 32 MiB. Save as does not automatically rebase attachment paths when moving a document into another folder; keep copies in the original folder to retain their relative paths. Network images require a connection.
 - PDF output uses the system print interface. The screen canvas is a fixed-size paper preview with scrolling, rather than true editable multipage pagination.
-- UTF-8 documents up to 20 MiB are supported. A changed-on-disk revision blocks an ordinary save, preserving the open buffer; reopen the file or use **Save as** to keep both versions. The revision check occurs at save time rather than through a live filesystem watcher.
+- UTF-8 documents up to 20 MiB are supported. Native filesystem monitoring checks project files and open documents. Clean buffers reload, while changed-on-disk revisions block stale saves of pending edits. Refresh and refocusing the app also check for changes; automatic merging and rename tracking are not implemented.
+- Project browsing is limited to 10,000 entries and 32 folder levels, excluding dot-prefixed entries, dependency/build folders, application data, and symlinks/reparse points. Literal project search reports limits of 200 results overall, 20 text matches per file, and 128 MiB of searched content; advanced filters and saved searches remain planned.
 - Documents and recovery data are stored unencrypted on the local device. The app has no telemetry or cloud sync; remotely linked images may make network requests.
 
 ## Development
@@ -83,7 +92,7 @@ Install Node.js 22+, stable Rust for **x86_64-pc-windows-msvc**, the Microsoft C
 
 The executable is **src-tauri/target/release/editor-md.exe**. **scripts/build-windows.ps1** performs the offline-asset build and Rust release build. **scripts/package-release.ps1** creates the portable artifacts after validation.
 
-The built executable supports **--self-test** for a non-GUI file-service check and **--smoke-test** for an isolated, hidden native-WebView integration test. The latter writes a report in **EditorMD-smoke** beside the executable, opens a test file, renders Markdown/Mermaid, checks native saving and unsaved-tab behavior, and exits automatically.
+The built executable supports **--self-test** for a non-GUI file-service check and **--smoke-test** for an isolated, hidden native-WebView integration test. The latter writes a report in **EditorMD-smoke** beside the executable, checks editing, footnotes, native saves, tab handling, project search, relative images, and actual filesystem watcher events, then exits automatically.
 
 Running **npm start** retains the [browser design preview](design/PROTOTYPE.md) at **http://127.0.0.1:4173**; the desktop app runs independently of that server.
 

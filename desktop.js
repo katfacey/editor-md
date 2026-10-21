@@ -22,13 +22,15 @@
   };
   installFootnoteMarkdown();
   const queues=new Map(),autosaveTimers=new Map();
-  let workspaceQueue=Promise.resolve(),checkpointTimer,ready=false,closePending=false,dataDirectory='';
+  let workspaceQueue=Promise.resolve(),checkpointTimer,ready=false,closePending=false,dataDirectory='',appVersion='';
   let incomingRequests=Promise.resolve(),incomingPending=false,incomingDocuments=[],incomingErrors=[];
+  let projects=null;
   const pageOf=file=>({...defaultPage,...file.page});
   const sourceOf=file=>typeof file.sourceText==='string'?file.sourceText:markdown(file.html);
   const cleanHtml=()=>{
     refreshFootnoteNumbers($('#paper'));
     const copy=$('#paper').cloneNode(true);
+    ProjectModel.cleanAssets(copy);
     copy.querySelectorAll('[data-mermaid]').forEach(block=>{
       block.innerHTML='';
       for(const attr of [...block.attributes])if(attr.name.startsWith('data-render'))block.removeAttribute(attr.name);
@@ -88,6 +90,10 @@
   };
   async function performSave(file,{saveAs=false,quiet=false}={}){
     if(!files.includes(file))return false;
+    if(projects?.state.external.has(file.id)&&!saveAs){
+      if(projects.state.external.get(file.id).kind==='missing'&&!quiet)saveAs=true;
+      else{if(!quiet)projects.reviewExternal(file);return false;}
+    }
     if(files[active]===file)captureDocument();
     const snapshot=structuredClone(file);
     try{
@@ -96,7 +102,9 @@
       const location={name:result.name,nativePath:result.path,nativeRevision:result.revision};
       Object.assign(file,location);Object.assign(snapshot,location);
       documentState.saved.set(file,snapshot);
+      projects?.state.external.delete(file.id);
       updateSaveState();renderTabs();renderSidebar();touchRecent(file,'edited');
+      document.dispatchEvent(new Event('documentchange'));
       await checkpoint();
       if(!quiet)toast('Saved '+result.name);
       return true;
@@ -117,7 +125,7 @@
     if(manual){nativeSave();return false;}
     if(autosaveEnabled){
       for(const file of all?files:files[active]?[files[active]]:[]){
-        if(file.nativePath&&documentState.isDirty(file)){
+        if(file.nativePath&&documentState.isDirty(file)&&!projects?.state.external.has(file.id)){
           clearTimeout(autosaveTimers.get(file.id));
           autosaveTimers.set(file.id,setTimeout(()=>nativeSave(file,{quiet:true}),900));
         }
@@ -183,6 +191,7 @@
   }
   closeDocument=async file=>{
     if(!file||!openDocuments.includes(file))return;
+    if(projects&&file.nativePath)await projects.checkExternal();
     const current=files[active],wasActive=current===file,position=openDocuments.indexOf(file);
     captureDocument();clearTimeout(autosaveTimers.get(file.id));
     if(queues.has(file.id))await queues.get(file.id);
@@ -208,6 +217,7 @@
       captureDocument();
       for(const timer of autosaveTimers.values())clearTimeout(timer);
       await Promise.all([...queues.values()]);
+      if(projects)await projects.checkExternal();
       const dirty=files.filter(file=>documentState.isDirty(file));
       if(dirty.length){
         const choice=await askToSave(null,true);
@@ -247,7 +257,7 @@
       $('#ribbon').prepend(group);$('#native-open').onclick=nativeOpen;$('#native-save-as').onclick=()=>nativeSave(files[active],{saveAs:true});$('#native-save-as').disabled=active<0;
     }
   };
-  $('#about').onclick=()=>openDialog('Editor, MD — Beta','<p><strong>A healthy place for your words.</strong></p><p>Version 0.1.2 · Windows desktop app built with Rust and Tauri.</p><p>File → Open (Ctrl+O), Save (Ctrl+S), or Save as (Ctrl+Shift+S). Switch Write / Split / Source above the document. Export offers Markdown, HTML, and system Print / PDF.</p><p>Developed with assistance from OpenAI Codex. AI assisted with interface design, code, documentation, and testing. This beta still requires human review and feedback.</p><p>Advanced Writer features and the designed MCP agent interface remain planned work.</p>');
+  $('#about').onclick=()=>openDialog('Editor, MD — Beta','<p><strong>A healthy place for your words.</strong></p><p>Version '+escapeHtml(appVersion)+' · Windows desktop app built with Rust and Tauri.</p><p>File → Open (Ctrl+O), Save (Ctrl+S), or Save as (Ctrl+Shift+S). Switch Write / Split / Source above the document. Export offers Markdown, HTML, and system Print / PDF.</p><p>Developed with assistance from OpenAI Codex. AI assisted with interface design, code, documentation, and testing. This beta still requires human review and feedback.</p><p>Advanced Writer features and the designed MCP agent interface remain planned work.</p>');
   document.addEventListener('keydown',event=>{
     if(!(event.ctrlKey||event.metaKey))return;
     const key=event.key.toLowerCase();
@@ -265,7 +275,7 @@
   $('#dialog').addEventListener('close',()=>{if(incomingPending||incomingDocuments.length)receiveExternalOpen()});
   document.addEventListener('click',event=>{if(event.target.closest('[data-use-template],#save-template'))queueCheckpoint();});
   try{
-    const boot=await invoke('bootstrap');dataDirectory=boot.dataDirectory;
+    const boot=await invoke('bootstrap');dataDirectory=boot.dataDirectory;appVersion=boot.version;
     const stored=boot.workspace;
     files=Array.isArray(stored?.files)?stored.files.filter(file=>typeof file.id==='string'&&typeof file.name==='string'&&typeof file.html==='string'):[];
     files.forEach(file=>{file.html=sanitize(file.html);file.sourceHtml=file.html;file.sourceText=sourceOf(file);});
@@ -292,11 +302,13 @@
     const first=boot.launch.length?files[active]:openDocuments.find(file=>file.id===stored?.active)||openDocuments[0];
     if(first)openFile(files.indexOf(first),{capture:false});else emptyEditor();
     observedDocuments.clear();files.forEach(file=>observedDocuments.set(file,JSON.stringify(file)));
-    $('.prototype').textContent='BETA '+boot.version;$('.workspace-bottom small').textContent='Local files · portable workspace';
+    $('.prototype').textContent=(boot.version.includes('dev')?'PREVIEW ':'BETA ')+boot.version;$('.workspace-bottom small').textContent='Local files · portable workspace';
     ribbon('Home');app.inert=false;
     await window.__TAURI__.event.listen('native-close-requested',closeWindow);
     await window.__TAURI__.event.listen('native-open-requested',receiveExternalOpen);
+    projects=await installProjectUI({invoke,listen:window.__TAURI__.event.listen,adoptDocuments,fileFromDisk,queueCheckpoint,nativeSave,showError,queues,autosaveTimers,sourceOf});
     await invoke('desktop_ready');
+    await projects.checkExternal();
     if(boot.warnings.length)showError('Some files need attention',boot.warnings.join('\n'));
     await checkpoint();
     if(boot.smokeTest){
@@ -386,6 +398,7 @@
         check(!await nativeSave(file,{quiet:true}),'External change blocks a stale save');
         check(documentState.isDirty(file)&&documentState.saved.get(file).sourceText===savedSource,'Failed save preserves the buffer and saved snapshot');
         $('#native-error-ok')?.click();await checkpoint();
+        await projects.smokeTest(check);
         await invoke('smoke_result',{result:{ok:true,checks:results}});
       }catch(error){await invoke('smoke_result',{result:{ok:false,error:String(error)}});}
     }

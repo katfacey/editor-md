@@ -19,8 +19,8 @@ function sanitize(html){
   const isGraph=e.hasAttribute('data-mermaid');
   [...e.attributes].forEach(a=>{if(!['class','id','href','src','alt','width','height','type','checked','color','face','size','data-mermaid','data-footnote-ref','data-footnote-id','data-footnote-source','data-footnote-missing','data-footnotes','contenteditable','style'].includes(a.name))e.removeAttribute(a.name)});
   e.removeAttribute('style');Object.assign(e.style,safeStyle);
-  if(e.hasAttribute('href')&&!/^(https?:|#)/i.test(e.getAttribute('href')))e.removeAttribute('href');
-  if(e.hasAttribute('src')&&!/^(https?:|data:image\/(png|jpeg|gif|webp);base64,)/i.test(e.getAttribute('src')))e.removeAttribute('src');
+  if(e.hasAttribute('href')&&!/^(https?:|#)/i.test(e.getAttribute('href'))&&!ProjectModel.relative(e.getAttribute('href')))e.removeAttribute('href');
+  if(e.hasAttribute('src')&&!/^(https?:|data:image\/(png|jpeg|gif|webp);base64,)/i.test(e.getAttribute('src'))&&!ProjectModel.relative(e.getAttribute('src')))e.removeAttribute('src');
   if(e.tagName==='INPUT'&&e.type!=='checkbox')e.remove();
   if(e.tagName==='BUTTON'&&!isGraph&&!e.closest('[data-mermaid]'))e.remove();
  });

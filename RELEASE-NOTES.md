@@ -1,15 +1,24 @@
-# Editor, MD — 0.1.2 Beta 2
+# Editor, MD — 0.1.3 Beta 3
 
-Second portable Windows x64 beta, built with Rust and Tauri 2. Includes the locally tested 0.1.1 improvements and the new footnotes system.
+Third portable Windows x64 beta, built with Rust and Tauri 2. Adds optional project folders and dependable access to related files while retaining individual-document editing.
 
-- **Footnotes replace Comments.** Use the familiar document inspector to add, edit, delete, and navigate notes. They belong to the current document and are saved with its Markdown.
-- **Automatic numbering follows document order.** Adding a note between 3 and 4 creates a new 4 and shifts the old 4 to 5. Deletion closes gaps, and repeated references share a number.
-- **Optional initials.** Check **Append my initials** to add a signature such as ` -KF`, using your editable profile initials. Notes retain their existing signatures when your profile changes.
-- **Portable footnote syntax.** References and definitions use `[^1]` and `[^1]: ...`; multiline note text and inline formatting are retained. Notes appear at the end of the document and in HTML/PDF output.
-- **Explorer opens files as tabs.** Further launches of this executable forward files to its existing window, including multiple paths. Files received during startup or a dialog are queued; already-open documents keep pending edits.
-- **Flexible document zoom.** The slider and buttons cover 25–200%. Double-click the percentage to enter a positive custom percentage, including above 200%. Keyboard users can focus it and press Enter or Space.
-- **Shared UI zoom.** Appearance scales the entire interface from 50–200%, independently of document zoom and print layout.
-- **Editable initials.** Click the profile circle or use Appearance; one to four characters are supported.
+- **Project folders.** Use **File → Open project**, or the folder control above the sidebar. Browse actual nested folders, Markdown files, images, and attachments. The last project reopens on startup; closing it leaves document tabs open.
+- **Project-wide search.** Use **Search** in the sidebar or **Ctrl+Shift+F**. Search filenames and Markdown text, including unopened files and unsaved edits. Results open Source with the matching text selected; Unicode offsets and optional case matching are supported.
+- **Relative images and attachments.** Local PNG, JPEG, GIF, and WebP references render inline while their original relative URLs remain in Markdown. **Insert → Image** and **Insert → Attachment** link existing project files or copy outside files into an attachments folder, using unique names without overwriting attachments.
+- **Open related files.** Ctrl+click a relative Markdown link to open its document tab, or an attachment link to open a supported file in its Windows default application. Attachments can also be opened from the project tree.
+- **Portable image output.** HTML export embeds relative raster images. Print/PDF waits for image loading and offers a choice when an image is unavailable.
+- **Live external-change detection.** Native filesystem monitoring refreshes the project tree and reloads clean documents. Unsaved edits stay intact, automatic saves pause for conflicts, and **Review** shows both versions with explicit reload and Save as choices.
+- **Deleted-file protection.** Files moved or deleted outside the app keep their open text and require saving before close. The existing revision check continues to guard disk saves before watcher notifications arrive.
+- Includes Beta 2's saved footnotes with ordered numbering and optional initials, single-window file opening, custom document zoom, UI scaling, and editable profile initials.
+
+## Quick start
+
+1. Open a project folder and expand its folders in Files.
+2. Use **Ctrl+Shift+F** to search across its Markdown documents.
+3. Save a document before importing images or attachments; Ctrl+click its relative links to follow them.
+4. If another app changes a document with pending edits, use **Review** to compare the versions, reload explicitly, or save a separate copy.
+
+The ZIP includes the detailed project guide at **design/PROJECTS.md**, the README, release notes, license notices, and checksums.
 
 ## Download and update
 
@@ -19,7 +28,15 @@ Windows 10/11 x64 and Microsoft Edge **WebView2 Runtime** are required. This uns
 
 ## Known limits
 
-Formatted editing may normalize Markdown or discard unsupported extensions; use Source for exact syntax. Other readers must support Markdown footnotes to render their syntax. Notes print at the end of the document, rather than being positioned at each page's bottom. Relative local images, advanced Writer features, editable pagination, Git integration, and the proposed MCP server remain planned. PDF uses the system print interface; PDF graphs are static. See the README for the full usage guide and beta boundaries.
+Project scanning is limited to 10,000 entries and 32 folder levels. Dot-prefixed entries, dependency/build folders, app data, and symlinks/reparse points are excluded. Search is literal, with 200 results overall, 20 text matches per file, and a 128 MiB content budget; the interface reports limits and skipped files.
+
+Attachment import and inline image preview support files up to 32 MiB. Relative references must remain inside the project, or the containing folder for individually opened files. Save as does not automatically rebase relative paths when moving a document to another folder. Integrated PDF viewing, document embeds, automatic merging, rename tracking, backlinks, properties, persistent history, advanced Writer features, Git integration, and the proposed MCP server remain planned.
+
+Formatted editing may normalize Markdown or discard unsupported extensions; use Source for exact syntax. Footnotes require compatible readers and print as an end-of-document list. PDF uses the system print interface and graphs are static. See the README for the full beta boundaries.
+
+## Validation
+
+29 JavaScript tests and 12 Rust tests cover document/save state, footnotes, charts, project scanning/search, Unicode positions, path boundaries, and attachment imports. The optimized Windows executable also passes 51 isolated native integration checks, including real filesystem watcher events and deleted-file close protection.
 
 ## AI-assistance disclosure
 
