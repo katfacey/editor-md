@@ -41,3 +41,9 @@
 
 WikiLinks.install();FontManager.populate();
 const imageTools=ImageTools.install();
+const writeInput=WriteInput.install();
+const selectionTools=SelectionTools.install();
+window.SidebarDock=WorkspaceLayout.installDock();
+window.RibbonUI=WorkspaceLayout.installRibbon();
+DocumentThemes.install();
+window.documentTabMenu=DocumentTabMenu.install();

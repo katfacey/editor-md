@@ -2,7 +2,9 @@
 
 **A healthy place for your words.** A Windows Markdown editor with an office-style ribbon, a page canvas, a source editor, and an optional doctor mascot. MD means both *Markdown* and *doctor*.
 
-**0.2.0 Beta 1** adds Ctrl+wheel document zoom, resizable sidebars, separate UI text sizing, system and custom fonts, wiki links, and image sizing and placement. It also includes separate physical pages, project folders, search, relative attachments, footnotes, and safe tabbed file editing. The application host and file services are written in **Rust with Tauri 2**; the shared interface uses HTML, CSS, and JavaScript. Its interface, fonts, mascot, icon, and Mermaid renderer are embedded in the executable. No Node.js, browser tab, local web server, account, or subscription is needed to use the desktop app.
+**0.2.6 Beta 3** adds a compact ribbon menu, Markdown-focused formatting controls, document styles, flexible sidebar and document tabs, and working Print/PDF since the 0.2.0 release. It also fixes formatted links to headings, including `[**The Fireworks Festival**](#scene-1-the-fireworks-festival)`. See the [release notes](RELEASE-NOTES.md) for the full comparison.
+
+Version 0.2.0 added Ctrl+wheel document zoom, resizable sidebars, separate UI text sizing, system and custom fonts, wiki links, and image sizing and placement. It also includes separate physical pages, project folders, search, relative attachments, footnotes, and safe tabbed file editing. The application host and file services are written in **Rust with Tauri 2**; the shared interface uses HTML, CSS, and JavaScript. Its interface, fonts, mascot, icon, and Mermaid renderer are embedded in the executable. No Node.js, browser tab, local web server, account, or subscription is needed to use the desktop app.
 
 ![Light and dark design reference](design/light-dark-comparison.png)
 
@@ -24,10 +26,12 @@ If its folder is read-only, workspace data falls back to the user's local applic
 | --- | --- |
 | Create a document | Click **+**, or press **Ctrl+N** |
 | Open Markdown | **File → Open…**, or **Ctrl+O**; Explorer files opened with this executable join the existing window as tabs |
-| Open a project | **File → Open project**, or **Open project folder** above the sidebar; browse existing files and folders directly |
+| Open a project | Click the workspace folder/name/path header, or **File → Open project**; its name appears in bold with its path underneath. Refresh and close sit beside the name; closing the folder keeps document tabs open |
+| Collapse local documents | With no project folder open, click **Writing** or **Documents** in Files; Enter/Space toggles the focused group and Left/Right collapses/expands it. Collapse states survive refresh and restart |
 | Search a project | **Search** in the sidebar, or **Ctrl+Shift+F**; searches filenames and Markdown text, including unopened files and pending edits |
 | Insert local images or attachments | Save the document, then use **Insert → Image** or **Insert → Attachment**; files outside the project are copied into its attachments folder |
 | Follow a wiki link | Write `[[Note]]`, `[[folder/Note]]`, or `[[Note#Heading\|Label]]`; **double-click** the rendered link to open the note in an editor tab |
+| Follow a formatted link | Markdown such as `[**Bold link**](https://example.com)` renders as a clickable link in Write; hovering shows the double-click hint |
 | Resize or position an image | Click the image and drag a corner; **Image…** opens width/height, aspect-ratio lock, and inline/left/center/right placement; **Fit to page** uses the writing area |
 | Choose document fonts | Home font menu lists installed families; **Custom… Load font file** opens a Windows picker for TTF/OTF files |
 | Resize the sidebars | Drag either divider beside the document; each sidebar retains its own width. Keyboard: focus the divider, then use arrow keys |
@@ -35,9 +39,19 @@ If its folder is read-only, workspace data falls back to the user's local applic
 | Save to disk | **File → Save now**, or **Ctrl+S**; a new draft opens a native Save dialog |
 | Save another file | **File → Save as…**, or **Ctrl+Shift+S** |
 | Close a tab | Its **×**, or **Ctrl+W**; unsaved work offers Save / Don't save / Cancel |
+| Format selected text | Select text in **Write** or **Split** for Bold, Italic, Underline, Strikethrough, Inline code, Link, Highlight and Footnote; **More** contains subscript, superscript and clear formatting |
+| Type Markdown in Write | Complete `**bold**`, `*italic*`, `~~strikethrough~~`, inline backticks, `[text](https://example.com)` or `[[Note]]`; formatting renders when the closing delimiter is typed. A heading, list or quote prefix followed by a space starts its block |
+| Insert a link | Select text, click **Link**, and enter a web address, `[[Note]]`, relative `.md` file, or `#heading`; Cancel restores your selection. Double-click to follow, or Ctrl+click ordinary links |
 | Edit Markdown directly | **Source** or **Split** above the document; **Write** returns to the formatted editor |
 | Change the canvas | **Page / Web** above the document; **Layout → Page setup** changes paper size and margins |
-| Change appearance | Palette button: light/dark colors, **Show mascot**, opacity, and **Restore defaults** |
+| Change appearance | **View → Appearance** or the palette button; categories are Colors, Interface, Background, Document tabs, Document styles, and Workspace. Restore defaults affects the selected category only |
+| Minimize the ribbon | Top-right chevron, or **Ctrl+F1**; the compact header keeps the MD logo, document tabs and expand chevron. Click the logo for the compact grouped command menu; Home keeps formatting open, and arrow keys move between categories. Escape closes the menu |
+| Style document tabs | **Appearance → Document tabs**: bold the active name, or choose Square, Curved, Angular or Pill tabs |
+| Manage open tabs | Right-click a document tab (or Shift+F10): Save, Save as, Save all, Close, Close all others, Close tabs to the left/right, or Close all. Cancel stops bulk closing |
+| Move sidebar tabs | Drag any sidebar tab to a new position or to the other side; right-click or Shift+F10 opens position commands. **Appearance → Workspace** restores default positions |
+| Choose a document style | **Appearance → Document styles**: Classic, Studio or Manuscript; customize fonts, point sizes and light/dark colors, then save a new preset or update a custom one |
+| Learn Markdown | **View → Markdown guide**, **MD menu → Help**, or **F1** opens examples beside their formatted results |
+| Insert a code block | **Home → Paragraph → Code block**, or **Insert → Code block**; selected text is used, and Source selections get Markdown fences |
 | Resize UI text | **Appearance → UI text size → A− / A+** (9–24 px); independent of document font size, zoom, and sidebar widths |
 | Scale the interface | **Appearance → UI zoom** (50–200%); shared by light and dark mode |
 | Zoom the document | **Ctrl+mouse wheel** over the document, or bottom-right slider and buttons (25–200%); double-click the percentage for any positive custom zoom, including above 200% |
@@ -46,11 +60,11 @@ If its folder is read-only, workspace data falls back to the user's local applic
 | Create graphs | **Insert → Graph studio**; edit chart data, flowchart nodes/connections, or Mermaid source |
 | Reuse a document | **File → Save as template**, then expand **Templates** |
 | Find recent work | Expand **Archive**; it lists recently created, edited, and opened documents |
-| Export or print | **Export** for a Markdown copy, styled HTML, or Print / PDF; select **Microsoft Print to PDF** in the system print interface |
+| Export or print | **Export** for a Markdown copy, styled HTML, or Print / PDF; choose **Save as PDF** or **Microsoft Print to PDF** in the print dialog |
 
 Custom fonts are validated and copied into **EditorMD-data/fonts**, loaded privately by the app, and restored at startup. Keep that folder with the executable when moving it. Fonts are not installed into Windows or embedded in Markdown; other readers need the same family or will use a fallback. Only import fonts you have permission to use.
 
-Wiki links resolve relative to the current file, then from the project root, then by a unique filename in the project. The `.md` extension is optional. Duplicate names require a folder path; missing notes display a message without creating files. Ordinary Markdown links retain Ctrl+click behavior.
+Wiki links resolve relative to the current file, then from the project root, then by a unique filename in the project. The `.md` extension is optional. Duplicate names require a folder path; missing notes display a message without creating files. Ordinary Markdown links support double-click and Ctrl+click. Web addresses open in your default browser; note links open editor tabs. Markdown syntax remains literal in Source and code blocks. Underline, highlighting, subscript and superscript are stored as inline HTML because ordinary Markdown does not define those styles.
 
 Image import and decoding run without blocking the interface. Pictures fit within page margins in Page view and within the document width in Web view. Explicit resizing and placement are saved using inline HTML, which other Markdown readers may handle differently.
 
@@ -64,7 +78,15 @@ Footnotes replace the old temporary comments panel. Each document owns its notes
 
 When updating, close the old app and place the new executable beside its existing **EditorMD-data** folder to retain your workspace. If Explorer still launches the old version, use **Open with** to select the new executable. The app does not change Windows file associations automatically. Interface zoom and document zoom are independent and do not alter PDF page size.
 
-The default light theme uses warm paper and green accents. Dark mode uses navy and orange. Mascot visibility and opacity are shared by both modes, defaulting to **shown at 20%**. The image fits the entire application and sits behind opaque document surfaces. It is excluded from document exports.
+Sidebar tab order, dock side, active panels, compact mode and document-tab styling are saved with the portable workspace preferences. The original sidebar resizing controls remain independent of document zoom. Each side can display any of the Files, Outline, Bookmarks, Search, Details and Footnotes panels.
+
+Document styles are display preferences, separate from the Markdown file. Heading 2 can inherit Heading 1 font/color; other roles inherit Body, with independent code and quote fonts and link colors. Explicit formatting in a document remains available. Styles also apply to HTML and PDF, with light-mode colors for white print pages. Custom presets can be saved, updated and deleted; built-in presets remain available.
+
+New workspaces default to **dark mode**, with **#0b121e** as the main color, **#df873a** as the accent, a collapsed ribbon, and **MD** as the profile initials. The compact header retains the appearance, theme and initials buttons. Existing mode, profile and ribbon choices remain saved; the previous stock dark palette upgrades to the new colors, while customized palettes are retained. Appearance → Workspace → Restore defaults returns to the collapsed header.
+
+Classic is the default document style: dark mode uses accent orange **#df873a** for H1, **#c68953** for H2 and **#ae8a6c** for H3–H6, with progressively lower saturation. It retains brighter orange links, orange quote borders and navy code backgrounds. Light mode uses the same three-tier hierarchy in navy, with warm orange code surfaces. Custom styles can set separate H3–H6 light/dark colors under Heading 2; older custom styles keep their existing inheritance. These display preferences also apply to styled HTML/PDF and do not add theme information to Markdown files.
+
+The app's light theme retains warm paper and green controls. Mascot visibility and opacity are shared by both modes, defaulting to **shown at 20%**. The image fits the entire application and sits behind opaque document surfaces. It is excluded from document exports.
 
 Project folders are optional; individual files still work. The last project is remembered. Local PNG, JPEG, GIF, and WebP images resolve relative to the saved document, within the project folder (or its containing folder for individual files). Markdown retains those relative paths; HTML export embeds the images, and Print/PDF waits for them to load. See the [project and attachment guide](design/PROJECTS.md) for limits and examples.
 
@@ -105,9 +127,11 @@ Install Node.js 22+, stable Rust for **x86_64-pc-windows-msvc**, the Microsoft C
 
 The executable is **src-tauri/target/release/editor-md.exe**. **scripts/build-windows.ps1** performs the offline-asset build and Rust release build. **scripts/package-release.ps1** creates the portable artifacts after validation.
 
+For an isolated manual print check, **--print-ui-test** opens a separate test profile without restoring the normal workspace.
+
 The built executable supports **--self-test** for a non-GUI file-service check and **--smoke-test** for an isolated, hidden native-WebView integration test. The latter writes a report in **EditorMD-smoke** beside the executable, checks actual paper geometry and scrolling, zoom, sidebar resizing, UI text sizing, native fonts, wiki links, large image imports and resizing, editing, footnotes, native saves, tab handling, project search, relative images, and actual filesystem watcher events, then exits automatically.
 
-The release version is **0.2.0** across Rust, Tauri and npm. The portable ZIP includes **samples/Pagination-stress-test.md** for manual testing.
+The local test version is **0.2.3** across Rust, Tauri and npm. The portable ZIP includes **samples/Pagination-stress-test.md** for manual testing.
 
 Running **npm start** retains the [browser design preview](design/PROTOTYPE.md) at **http://127.0.0.1:4173**; the desktop app runs independently of that server.
 

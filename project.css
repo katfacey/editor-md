@@ -1,7 +1,17 @@
-.project-bar{display:flex;align-items:center;gap:3px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px 10px}
-.project-bar #open-project{flex:1;min-width:0;justify-content:flex-start;font-size:calc(10px * var(--ui-text-scale,1))}
-.project-bar #project-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.project-bar button{font-size:calc(15px * var(--ui-text-scale,1));padding:5px}.project-bar svg{width:14px;height:14px}
+.workspace-name{gap:6px;padding:18px 12px;border-bottom:1px solid var(--line)}
+.workspace-name #open-project{flex:1;min-width:0;margin:0;padding:4px 2px;gap:10px;justify-content:flex-start;text-align:left;font-size:calc(12px * var(--ui-text-scale,1));color:var(--ink)}
+.workspace-logo{flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.workspace-copy{flex:1;min-width:0;display:block}
+#project-name{display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.workspace-name #project-path{display:block;font-size:calc(9px * var(--ui-text-scale,1));font-weight:400;letter-spacing:0;line-height:1.5;text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:5px;color:var(--muted)}
+.workspace-actions{display:flex;flex-shrink:0;gap:2px}
+.workspace-name .workspace-actions button{margin:0;width:24px;height:28px;padding:2px;font-size:calc(17px * var(--ui-text-scale,1));color:var(--muted)}
+.workspace-name .workspace-actions button:hover{color:var(--green)}
+.document-tree-toggle{display:flex;width:100%;justify-content:flex-start;text-align:left;gap:8px}
+.document-tree-toggle.tree-folder{align-items:center;padding:8px 9px;font-size:calc(11px * var(--ui-text-scale,1))}
+.document-tree-toggle.tree-folder svg{width:15px;height:15px;color:var(--muted)}
+.document-tree-toggle.tree-heading>span{margin-left:0}
+.document-tree-toggle.tree-heading>.document-tree-count{margin-left:auto}
 .sidebar-tabs{gap:10px;margin:0 10px;overflow-x:auto;flex-shrink:0}.sidebar-tabs button{font-size:calc(9px * var(--ui-text-scale,1));white-space:nowrap;flex-shrink:0}
 .project-tree-folder,.project-file{display:flex;width:100%;justify-content:flex-start;gap:6px;font-size:calc(10px * var(--ui-text-scale,1));text-align:left;min-height:31px;padding:6px 5px 6px calc(8px + var(--tree-depth,0)*12px)}
 .project-file span,.project-tree-folder span{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}

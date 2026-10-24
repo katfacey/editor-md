@@ -25,7 +25,8 @@
   function install(){
     const render=renderMarkdown;renderMarkdown=source=>{const t=document.createElement('template');t.innerHTML=render(source);decorate(t.content);return t.innerHTML;};
     const convert=markdown;markdown=content=>{const t=document.createElement('template');t.innerHTML=content;t.content.querySelectorAll('a[data-wiki-source]').forEach(a=>a.replaceWith(document.createTextNode(a.dataset.wikiSource)));return convert(t.innerHTML);};
-    $('#paper').addEventListener('input',()=>{decorate($('#paper'));save();});
+    // Live typing uses WriteInput's undoable editing transaction. Direct DOM
+    // replacement here used to miss links split across styled text nodes.
     const click=event=>{if(event.target.closest('a[data-wiki-link]'))event.preventDefault();};$('#paper').addEventListener('click',click,true);
     $('#paper').addEventListener('dblclick',event=>{const anchor=event.target.closest('a[data-wiki-link]');if(anchor){event.preventDefault();event.stopImmediatePropagation();open(anchor);}},true);
     $('#paper').addEventListener('keydown',event=>{const anchor=event.target.closest('a[data-wiki-link]');if(anchor&&event.key==='Enter'){event.preventDefault();open(anchor);}},true);
@@ -41,6 +42,19 @@
     }catch(error){toast('Could not open [['+link.target+']]: '+String(error));}
   }
   function jump(heading){if(!heading)return;const wanted=heading.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');const element=$$('#paper h1,#paper h2,#paper h3,#paper h4,#paper h5,#paper h6').find(e=>e.textContent.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'')===wanted);element?.scrollIntoView({block:'start'});}
-  const model={parse,html,decorate,install,connect:value=>api=value,open};
+  function repairStored(file){
+    if(typeof file?.sourceText!=='string'||!file.sourceText.includes('[[')||!file.html?.includes('[['))return file;
+    const previous=document.createElement('template');previous.innerHTML=file.html;
+    const walker=document.createTreeWalker(previous.content,NodeFilter.SHOW_TEXT);let literal=false;
+    while(walker.nextNode())if(walker.currentNode.textContent.includes('[[')&&!walker.currentNode.parentElement?.closest('a,code,pre,[data-mermaid]')){literal=true;break;}
+    if(!literal)return file;
+    // Re-render only recovery entries with an actual, unescaped wiki source.
+    // Explicitly escaped examples and inline/fenced code remain literal.
+    if(![...file.sourceText.matchAll(/\[\[[^\]\n]+\]\]/g)].some(match=>match.index===0||file.sourceText[match.index-1]!=='\\'))return file;
+    const html=renderMarkdown(file.sourceText),t=document.createElement('template');t.innerHTML=html;
+    if(!t.content.querySelector('a[data-wiki-link]'))return file;
+    file.html=html;file.sourceHtml=html;return file;
+  }
+  const model={parse,html,decorate,install,connect:value=>api=value,open,repairStored};
   if(typeof module==='object'&&module.exports)module.exports=model;else root.WikiLinks=model;
 })(globalThis);

@@ -64,7 +64,7 @@ function footnoteQuote(note){
   return source.slice(Math.max(start,ref.start-100),ref.start).replace(/\[\^[^\]]+\]/g,'').trim()||'Document reference';
 }
 function renderFootnoteInspector(){
-  const file=files[active],model=footnoteModel(),container=$('#inspector-content');
+  const file=files[active],model=footnoteModel(),container=window.SidebarDock?.content('footnotes')||$('#inspector-content');
   if(footnoteDraft.file!==file?.id)footnoteDraft={file:file?.id,text:'',edit:null,sign:footnoteSignature};
   const editing=footnoteDraft.edit,initials=currentFootnoteInitials();
   container.innerHTML=model.notes.map(note=>'<div class="comment footnote-card" data-footnote-card="'+escapeHtml(note.id)+'"><div class="comment-header"><span class="avatar">'+note.number+'</span>Footnote '+note.number+'</div><p class="quote">'+escapeHtml(footnoteQuote(note))+'</p><p class="footnote-text">'+escapeHtml(note.missing?'Footnote text is missing. Edit to add it.':note.text)+'</p><div class="footnote-actions"><button data-footnote-jump="'+escapeHtml(note.id)+'">Go to reference</button><button data-footnote-edit="'+escapeHtml(note.id)+'">Edit</button><button data-footnote-delete="'+escapeHtml(note.id)+'">Delete</button></div></div>').join('')+

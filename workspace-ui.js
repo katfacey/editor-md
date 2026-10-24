@@ -1,5 +1,19 @@
 let documentState,openDocuments=[],templates=[],recentDocuments=[];
 const librarySectionsOpen=new Set(),observedDocuments=new Map();
+const documentTreeExpanded={documents:true,writing:true};
+try{const stored=JSON.parse(localStorage.getItem('editor-md-document-tree-v1'));for(const key of ['documents','writing'])if(typeof stored?.[key]==='boolean')documentTreeExpanded[key]=stored[key];}catch{}
+function workspaceDocumentTree(){
+  const heading=(key,label,extra='')=>'<button class="document-tree-toggle '+(key==='documents'?'tree-heading':'tree-folder')+'" data-document-group="'+key+'" aria-expanded="'+documentTreeExpanded[key]+'" aria-controls="workspace-'+key+'-files" title="'+(documentTreeExpanded[key]?'Collapse ':'Expand ')+label+'"><span aria-hidden="true">'+(documentTreeExpanded[key]?'⌄':'›')+'</span>'+(key==='writing'?icon('folder'):'')+'<span>'+label+'</span>'+extra+'</button>';
+  return heading('documents','DOCUMENTS','<span class="document-tree-count">'+files.length+'</span>')+'<div id="workspace-documents-files" '+(documentTreeExpanded.documents?'':'hidden')+'>'+heading('writing','Writing')+'<div id="workspace-writing-files" '+(documentTreeExpanded.writing?'':'hidden')+'>'+files.map((file,index)=>'<button class="file '+(index===active?'selected':'')+'" data-open="'+index+'">'+icon('file')+'<span>'+escapeHtml(file.name)+'</span>'+(index===active?'<span class="file-dot"></span>':'')+'</button>').join('')+'</div></div>';
+}
+function bindDocumentTree(){
+  $$('[data-document-group]').forEach(button=>{
+    const key=button.dataset.documentGroup;
+    const set=value=>{documentTreeExpanded[key]=value;try{localStorage.setItem('editor-md-document-tree-v1',JSON.stringify(documentTreeExpanded));}catch{}renderSidebar();$('[data-document-group="'+key+'"]').focus({preventScroll:true});};
+    button.onclick=()=>set(!documentTreeExpanded[key]);
+    button.onkeydown=event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();set(event.key==='ArrowRight');}};
+  });
+}
 function initializeWorkspace(){
   let assignedIds=false;const seenIds=new Set();
   files.forEach(file=>{if(!/^[a-zA-Z0-9-]{1,80}$/.test(file.id||'')||seenIds.has(file.id)){file.id=crypto.randomUUID();assignedIds=true}seenIds.add(file.id)});
@@ -33,7 +47,7 @@ function syncDocumentControls(){
   $('.document-area').classList.toggle('no-document',empty);$('#empty-document').hidden=!empty;
   $('.health').hidden=empty;
   $('#paper').contentEditable=String(!empty);$('#source').disabled=empty;$('#export').disabled=empty;
-  $$('#ribbon [data-action]').forEach(button=>button.disabled=empty&&!['new','theme','appearance','focus','panel','storage'].includes(button.dataset.action));
+  $$('#ribbon [data-action]').forEach(button=>button.disabled=empty&&!['new','theme','appearance','focus','panel','storage','markdown-guide','document-styles'].includes(button.dataset.action));
   $$('#ribbon select').forEach(select=>select.disabled=empty);
 }
 function openFile(index,{capture=true,activity='opened'}={}){
@@ -111,7 +125,7 @@ function recordDocumentEdit(file){
   if(!file)return;const signature=JSON.stringify(file);
   if(observedDocuments.get(file)!==signature){observedDocuments.set(file,signature);touchRecent(file,'edited');if(side==='files'&&librarySectionsOpen.has('archive'))renderSidebar()}
 }
-function showLibrary(section){side='files';librarySectionsOpen.add(section);$$('[data-side]').forEach(button=>button.classList.toggle('selected',button.dataset.side==='files'));renderSidebar();$('[data-library="'+section+'"]').scrollIntoView({block:'nearest'})}
+function showLibrary(section){side='files';window.SidebarDock?.select('files');librarySectionsOpen.add(section);$$('[data-side]').forEach(button=>button.classList.toggle('selected',button.dataset.side==='files'));renderSidebar();$('[data-library="'+section+'"]').scrollIntoView({block:'nearest'})}
 function recentTime(value){const time=new Date(value);return Number.isNaN(time.getTime())?'':time.toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}
 function librarySections(){
   const recent=recentDocuments.filter(entry=>files.some(file=>file.id===entry.id));

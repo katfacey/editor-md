@@ -1,0 +1,11 @@
+.selection-tools{position:fixed;z-index:20;display:flex;align-items:center;gap:2px;padding:5px;border:2px solid color-mix(in srgb,var(--green) 65%,var(--ink));border-radius:9px;background:var(--surface);color:var(--ink);box-shadow:0 6px 24px #0005;max-width:calc(100vw - 16px)}
+.selection-tools[hidden],.selection-more[hidden]{display:none}
+.selection-tools>button{height:30px;min-width:30px;padding:5px;font-size:calc(15px * var(--ui-text-scale,1))}
+.selection-tools button[aria-pressed="true"]{color:var(--green);background:var(--pale)}
+.selection-tools button svg{width:16px;height:16px}
+.selection-divider{width:1px;height:18px;background:var(--line);margin:0 3px}
+.selection-more{position:absolute;right:0;top:calc(100% + 6px);display:flex;flex-direction:column;min-width:155px;padding:5px;background:var(--surface);border:1px solid var(--line);border-radius:7px;box-shadow:0 6px 24px #0003}
+.selection-more button{justify-content:flex-start;font-size:calc(12px * var(--ui-text-scale,1));white-space:nowrap}
+.editor-link-tip{position:fixed;z-index:21;max-width:250px;padding:6px 9px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);box-shadow:0 5px 18px #0004;font-size:calc(11px * var(--ui-text-scale,1));pointer-events:none;white-space:nowrap}
+.editor-link-tip[hidden]{display:none}
+@media print{.selection-tools,.editor-link-tip{display:none!important}}

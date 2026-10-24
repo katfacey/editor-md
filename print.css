@@ -1,0 +1,10 @@
+.print-document{display:none!important}
+@media print{
+  body.printing-document .app{display:none!important}
+  body.printing-document{height:auto!important;overflow:visible!important;margin:0!important}
+  body.printing-document #print-document{display:block!important;position:static!important;overflow:visible!important;height:auto!important;min-height:0!important;max-height:none!important;mask-image:none!important;zoom:1!important}
+  #print-document:before,#print-document:after{display:none!important}
+  #print-document img{max-width:100%;height:auto}
+  #print-document .diagram-image svg text{fill:#28332f!important}
+  #print-document .diagram-image svg .node rect,#print-document .diagram-image svg .node polygon{fill:#eef2e9!important;stroke:#53695d!important}
+}

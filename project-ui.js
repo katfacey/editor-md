@@ -6,12 +6,11 @@ async function installProjectUI(api){
   let refreshTimer,searchTimer,assetRun=0;
   const banner=document.createElement('div');banner.id='external-status';banner.hidden=true;banner.setAttribute('role','status');$('.canvas-top').after(banner);
   const assetStatus=document.createElement('div');assetStatus.id='attachment-status';assetStatus.hidden=true;banner.after(assetStatus);
-  const projectBar=document.createElement('div');projectBar.className='project-bar';projectBar.innerHTML='<button id="open-project" title="Open project folder">'+icon('folder')+'<span id="project-name">Open project folder</span></button><button id="project-refresh" aria-label="Refresh project">↻</button><button id="close-project" aria-label="Close project folder">×</button>';
-  $('.workspace-name').after(projectBar);
-  const searchTab=document.createElement('button');searchTab.dataset.side='search';searchTab.textContent='Search';$('.sidebar-tabs').append(searchTab);
+  const searchTab=$('[data-side="search"]')||document.createElement('button');searchTab.dataset.side='search';searchTab.textContent='Search';if(!searchTab.isConnected)$('.sidebar-tabs').append(searchTab);
   searchTab.onclick=()=>showSearch();
   function updateProjectBar(){
-    $('#project-name').textContent=state.project?.name||'Open project folder';$('#open-project').title=state.project?.root||'Open project folder';
+    $('#project-name').textContent=state.project?.name||'My workspace';$('#project-path').textContent=state.project?.root||'Open a project folder';
+    $('#open-project').title=state.project?.root||'Open project folder';$('#project-path').title=state.project?.root||'Open project folder';$('#open-project').setAttribute('aria-label',state.project?'Browse project folder: '+state.project.name:'Open project folder');
     $('#close-project').hidden=!state.project;$('#project-refresh').hidden=!state.project;
   }
   async function openProject(){
@@ -21,14 +20,14 @@ async function installProjectUI(api){
   $('#open-project').onclick=openProject;
   $('#project-refresh').onclick=()=>refreshFiles(true);
   $('#close-project').onclick=async()=>{try{await invoke('close_project');state.searchToken++;state.searching=false;state.project=null;state.search=null;state.error='';updateProjectBar();renderSidebar();clearAssets();hydrateAssets();toast('Project closed; document tabs stay open');}catch(error){showError('Could not close project',error);}};
-  function selectSide(){$$('[data-side]').forEach(button=>button.classList.toggle('selected',button.dataset.side===side));}
+  function selectSide(){if(window.SidebarDock){SidebarDock.select(side);return;}$$('[data-side]').forEach(button=>button.classList.toggle('selected',button.dataset.side===side));}
   const originalSidebar=renderSidebar;
   renderSidebar=()=>{
     if(side==='search'){renderSearch();return;}
     if(side!=='files'||!state.project){originalSidebar();return;}
     const selected=files[active]?.nativePath&&ProjectModel.relativePath(state.project.root,files[active].nativePath);
     function rows(nodes,depth=0){return nodes.map(node=>node.kind==='folder'?'<button class="project-tree-folder" data-project-folder="'+escapeHtml(node.path)+'" style="--tree-depth:'+depth+'" aria-expanded="'+state.expanded.has(node.path)+'">'+(state.expanded.has(node.path)?'⌄':'›')+' '+icon('folder')+'<span>'+escapeHtml(node.name)+'</span></button>'+(state.expanded.has(node.path)?rows(node.children,depth+1):''):'<button class="project-file '+(selected?.toLowerCase()===node.path.toLowerCase()?'selected':'')+'" data-project-file="'+escapeHtml(node.path)+'" style="--tree-depth:'+depth+'" title="'+escapeHtml(node.path)+'">'+icon(node.kind==='image'?'image':'file')+'<span>'+escapeHtml(node.name)+'</span></button>').join('');}
-    $('#sidebar-content').innerHTML='<div class="tree-heading">PROJECT FILES <span>'+state.project.entries.filter(entry=>entry.kind!=='folder').length+'</span></div>'+projectNotices()+rows(ProjectModel.tree(state.project.entries))+(state.project.entries.length?'':'<p class="library-empty">This folder is empty.</p>')+librarySections();
+    (window.SidebarDock?.content('files')||$('#sidebar-content')).innerHTML='<div class="tree-heading">PROJECT FILES <span>'+state.project.entries.filter(entry=>entry.kind!=='folder').length+'</span></div>'+projectNotices()+rows(ProjectModel.tree(state.project.entries))+(state.project.entries.length?'':'<p class="library-empty">This folder is empty.</p>')+librarySections();
     $$('[data-project-folder]').forEach(button=>button.onclick=()=>{const path=button.dataset.projectFolder;state.expanded.has(path)?state.expanded.delete(path):state.expanded.add(path);renderSidebar();});
     $$('[data-project-file]').forEach(button=>button.onclick=()=>openProjectEntry(button.dataset.projectFile));bindLibrarySections();
   };
@@ -46,7 +45,7 @@ async function installProjectUI(api){
   }
   function showSearch(){side='search';selectSide();renderSidebar();$('#project-query')?.focus();}
   function renderSearch(){
-    const container=$('#sidebar-content');
+    const container=window.SidebarDock?.content('search')||$('#sidebar-content');
     container.innerHTML='<label class="section-label" for="project-query">SEARCH PROJECT</label><input id="project-query" type="search" placeholder="Words or filename…" autocomplete="off"><label class="project-match-case"><input type="checkbox" id="project-match-case"> Match case</label><p id="project-search-summary" aria-live="polite"></p><div id="project-search-results"></div>';
     $('#project-query').value=state.query;$('#project-match-case').checked=state.caseSensitive;
     $('#project-query').oninput=event=>{state.query=event.target.value;clearTimeout(searchTimer);state.searchToken++;searchTimer=setTimeout(runSearch,200);};
@@ -125,7 +124,7 @@ async function installProjectUI(api){
     finally{state.checking=false;if(state.pending){state.pending=false;scheduleRefresh();}}
   }
   async function refreshFiles(manual=false){
-    if(state.project){const root=state.project.root;try{const project=await invoke('refresh_project',{restart:manual});if(state.project?.root===root&&project?.root===root){state.project=project;state.error='';}}catch(error){if(state.project?.root===root)state.error=String(error);}if(side==='files')renderSidebar();}
+    if(state.project){const root=state.project.root;try{const project=await invoke('refresh_project',{restart:manual});if(state.project?.root===root&&project?.root===root){state.project=project;state.error='';}}catch(error){if(state.project?.root===root)state.error=String(error);}if(side==='files')renderSidebar();window.SidebarDock?.refresh();}
     await checkExternal();clearAssets();await hydrateAssets();if(side==='search'&&state.query.trim())runSearch();if(manual)toast('Checked project files and open documents');
   }
   function scheduleRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>refreshFiles(),450);}
@@ -164,12 +163,13 @@ async function installProjectUI(api){
   const download=downloadFile;downloadFile=async(name,content,type)=>{try{if(type.includes('html'))content=await embedExportImages(content);return await download(name,content,type);}catch(error){showError('Could not export attachment images',error);}};
   async function relativeLink(event){
     const link=event.target.closest('a'),target=link?.getAttribute('href');if(!link||link.hasAttribute('data-wiki-link')||!ProjectModel.relative(target))return;
-    if(!event.ctrlKey&&!event.metaKey)return;
+    if(event.type!=='dblclick'&&!event.ctrlKey&&!event.metaKey)return;
     event.preventDefault();event.stopImmediatePropagation();const file=files[active];if(!file?.nativePath)return toast('Save this document before opening relative links');
     try{if(/\.(md|markdown|mdown)(?:#.*)?$/i.test(target)){const doc=await invoke('open_relative_document',{id:file.id,target});adoptDocuments([doc]);}else await invoke('open_attachment',{id:file.id,target});}
     catch(error){showError('Could not open linked file',error);}
   }
   $('#paper').addEventListener('click',relativeLink,true);
+  $('#paper').addEventListener('dblclick',relativeLink,true);
   const originalFind=$('#find').onclick;
   $('#find').onclick=()=>state.project?showSearch():originalFind();
   const designRibbon=ribbon;ribbon=tab=>{
@@ -209,6 +209,9 @@ async function installProjectUI(api){
   async function smokeTest(check){
     const until=async(condition)=>{const deadline=Date.now()+6000;while(!condition()){if(Date.now()>deadline)throw Error('Timed out waiting for project watcher');await new Promise(resolve=>setTimeout(resolve,50));}};
     state.project=await invoke('smoke_project',{action:'setup'});state.expanded.add('notes');side='files';selectSide();updateProjectBar();renderSidebar();
+    check($('#project-name').textContent===state.project.name&&getComputedStyle($('#project-name')).fontWeight==='700'&&$('#project-path').textContent===state.project.root,'Workspace header shows the open folder name in bold with its full path underneath');
+    check($('#open-project').contains($('.workspace-logo'))&&$('#project-refresh').closest('.workspace-name')&&$('#close-project').closest('.workspace-name')&&!$('.project-bar')&&!$('#new-doc'),'Folder browsing, refresh and close share the single workspace header without a duplicate folder row');
+    await $('#project-refresh').onclick();check($('#project-name').textContent===state.project.name&&!$('#project-refresh').hidden&&!$('#close-project').hidden,'Header refresh retains the project name, path and folder controls');
     check(!!$('[data-project-file="notes/second.md"]')&&state.project.entries.some(entry=>entry.path==='assets/pixel.png'),'Project tree shows unopened nested Markdown and attachment files');
     showSearch();state.query='needle';$('#project-query').value=state.query;await runSearch();
     check(state.search.hits.filter(hit=>!hit.filename).length===2&&state.search.searched===2&&$$('[data-search-hit]').length===2,'Project search shows results from unopened Markdown files');
@@ -271,8 +274,19 @@ async function installProjectUI(api){
     const closeMissing=closeDocument(first);await until(()=>!!$('#native-cancel'));$('#native-cancel').click();await closeMissing;
     check(openDocuments.includes(first)&&sourceOf(first)===kept,'Cancel preserves an externally deleted document when closing its tab');
     await refreshFiles();check(!state.project.entries.some(entry=>entry.path==='notes/first.md'),'Project tree refreshes after external deletion');
-    const tabs=openDocuments.length;await invoke('close_project');state.project=null;updateProjectBar();renderSidebar();
+    const tabs=openDocuments.length;await $('#close-project').onclick();
     check(openDocuments.length===tabs&&sourceOf(first)===kept,'Closing a project leaves document buffers open');
+    check($('#project-name').textContent==='My workspace'&&$('#project-path').textContent==='Open a project folder'&&$('#project-refresh').hidden&&$('#close-project').hidden,'Closing a project restores the browse prompt and hides project-only controls');
+    side='files';selectSide();renderSidebar();
+    const writing=()=>$('#dock-panel-files [data-document-group="writing"]'),documents=()=>$('#dock-panel-files [data-document-group="documents"]');
+    const openBefore=[...openDocuments],textBefore=sourceOf(first);
+    writing().click();check(writing().getAttribute('aria-expanded')==='false'&&$('#workspace-writing-files').hidden,'Writing collapses after closing the project folder');
+    renderSidebar();check(writing().getAttribute('aria-expanded')==='false'&&$('#workspace-writing-files').hidden&&JSON.parse(localStorage.getItem('editor-md-document-tree-v1')).writing===false,'Writing remains collapsed through sidebar refresh and stores its preference');
+    writing().dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));check(writing().getAttribute('aria-expanded')==='true'&&!$('#workspace-writing-files').hidden&&!!$('#workspace-writing-files [data-open]'),'Arrow Right expands Writing and shows its documents again');
+    writing().dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true,cancelable:true}));check($('#workspace-writing-files').hidden,'Arrow Left collapses Writing');
+    documents().click();check(documents().getAttribute('aria-expanded')==='false'&&$('#workspace-documents-files').hidden,'The Documents parent section can also collapse');
+    documents().click();check(!$('#workspace-documents-files').hidden&&$('#workspace-writing-files').hidden,'Reopening Documents preserves the child Writing collapse state');writing().click();
+    check(openBefore.length===openDocuments.length&&openBefore.every((file,index)=>file===openDocuments[index])&&sourceOf(first)===textBefore,'Collapsing document groups preserves open tabs and pending document text');
   }
   return {state,refreshFiles,checkExternal,hydrateAssets,openProjectEntry,runSearch,replaceFromDisk,reviewExternal,clearAssets,smokeTest};
 }

@@ -24,7 +24,7 @@ async function runFeatureChecks(check,{invoke,projects}){
   handle.dispatchEvent(event('pointerdown',300));handle.dispatchEvent(event('pointermove',350));handle.dispatchEvent(event('pointerup',350));handle.setPointerCapture=capture;
   check(near(widths()[0]-before,50),'Sidebar dragging compensates for UI zoom rather than document zoom');setInterfaceZoom(100);
   const textBefore=parseFloat(getComputedStyle($('#show-inspector')).fontSize),docBefore=getComputedStyle(paper).fontSize,sizeBefore=widths();
-  appearanceDialog();$('#ui-text-larger').click();$('#ui-text-larger').click();
+  appearanceDialog('interface');$('#ui-text-larger').click();$('#ui-text-larger').click();
   check(interfaceSettings.textSize===original.text+2&&parseFloat(getComputedStyle($('#show-inspector')).fontSize)>textBefore,'Appearance up/down buttons resize UI text');
   check(getComputedStyle(paper).fontSize===docBefore&&documentZoom===100&&widths().every((value,i)=>near(value,sizeBefore[i])),'UI text sizing preserves document type, document zoom and sidebar widths');
   readInterfaceSettings();applyInterfaceSettings();check(interfaceSettings.textSize===original.text+2,'UI text size survives preference reload');

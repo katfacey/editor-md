@@ -9,12 +9,14 @@ Object.assign(paths, {
 $('#appearance').innerHTML=icon('palette');
 const appearanceDefaults={
   light:{main:'#eeefec',accent:'#35644d'},
-  dark:{main:'#111e33',accent:'#f0a15a'}
+  dark:{main:'#0b121e',accent:'#df873a'}
 };
 let appearance=structuredClone(appearanceDefaults);
 function readAppearance(){
   try {
     const value=JSON.parse(localStorage.getItem('editor-md-appearance-v1'));
+    // Upgrade the former stock dark colors while retaining customized palettes.
+    if(value?.dark?.main?.toLowerCase()==='#111e33'&&value.dark.accent?.toLowerCase()==='#f0a15a')value.dark={...appearanceDefaults.dark};
     for(const mode of ['light','dark'])for(const key of ['main','accent'])
       if(/^#[0-9a-f]{6}$/i.test(value?.[mode]?.[key]))appearance[mode][key]=value[mode][key];
   }catch{}
@@ -43,7 +45,7 @@ function saveMascotSettings(){
   applyMascot();
 }
 readMascotSettings();applyMascot();
-const interfaceDefaults={zoom:100,textSize:13,initials:'KF'};
+const interfaceDefaults={zoom:100,textSize:13,initials:'MD'};
 let interfaceSettings={...interfaceDefaults};
 function readInterfaceSettings(){
   interfaceSettings={...interfaceDefaults};
@@ -317,7 +319,7 @@ function pageDialog(){
 function downloadFile(name,content,type){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function exportDialog(){
   openDialog('Export document',`<div class="export-choices"><button data-export="markdown">${icon('code')}<span><strong>Markdown (.md)</strong><small>Portable text and Mermaid source. Rich text uses inline HTML.</small></span></button><button data-export="html">${icon('file')}<span><strong>Styled document (.html)</strong><small>Preserves text styling and static graph artwork.</small></span></button><button data-export="pdf">${icon('print')}<span><strong>PDF / Print</strong><small>Uses the system print dialog. Choose Save as PDF.</small></span></button></div><p class="format-note">Text color and page margins are included in PDF. Graphs become static artwork. Screen theme colors do not change printed page colors.</p>`);
-  $$('[data-export]').forEach(b=>b.onclick=()=>{const type=b.dataset.export;$('#dialog').close();if(type==='pdf'){applyPage();window.print();return}if(type==='markdown'){download();return}const html=PageLayout.clean($('#paper').cloneNode(true));html.querySelectorAll('.graph-controls').forEach(e=>e.remove());html.querySelectorAll('.diagram-image').forEach(e=>e.removeAttribute('style'));const p={...defaultPage,...files[active].page};downloadFile(files[active].name.replace(/\.md$/i,'')+'.html','<!doctype html><meta charset="utf-8"><title>'+escapeHtml(files[active].name)+'</title><style>body{background:white;color:#28332f;font:12pt/1.7 Georgia;max-width:8.5in;margin:auto;padding:'+p.top+'in '+p.right+'in '+p.bottom+'in '+p.left+'in}h1{font-size:30pt}blockquote{border-left:3px solid #777;padding-left:20px}svg{max-width:100%;height:auto}table{border-collapse:collapse}td,th{border:1px solid #aaa;padding:8px}.graph-source{display:none}@media print{body{padding:0}}</style>'+html.innerHTML,'text/html');toast('Styled document exported')});
+  $$('[data-export]').forEach(b=>b.onclick=()=>{const type=b.dataset.export;$('#dialog').close();if(type==='pdf'){applyPage();window.print();return}if(type==='markdown'){download();return}const html=PageLayout.clean($('#paper').cloneNode(true));html.querySelectorAll('.graph-controls').forEach(e=>e.remove());html.querySelectorAll('.diagram-image').forEach(e=>e.removeAttribute('style'));const p={...defaultPage,...files[active].page};downloadFile(files[active].name.replace(/\.md$/i,'')+'.html','<!doctype html><meta charset="utf-8"><title>'+escapeHtml(files[active].name)+'</title><style>body{background:white;color:#28332f;font:12pt/1.7 Georgia;max-width:8.5in;margin:auto;padding:'+p.top+'in '+p.right+'in '+p.bottom+'in '+p.left+'in}h1{font-size:30pt}blockquote{border-left:3px solid #777;padding-left:20px}svg{max-width:100%;height:auto}table{border-collapse:collapse}td,th{border:1px solid #aaa;padding:8px}.graph-source{display:none}@media print{body{padding:0}}'+(window.DocumentThemes?.exportCss()||'')+'</style><main class="document-theme-export">'+html.innerHTML+'</main>','text/html');toast('Styled document exported')});
 }
 // Layout is a viewing preference; page metadata still controls print/export.
 let documentLayout='page';

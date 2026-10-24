@@ -3,11 +3,14 @@
 (async function(){
   if(!window.__TAURI__)return;
   const {invoke}=window.__TAURI__.core;
+  // Capture the actual WebView method before installing the application's wrapper.
+  const systemPrint=window.print.bind(window);
   const app=$('.app');app.inert=true;
   const {marked,TurndownService,gfm}=window.EditorMarkdown;
   const fence=String.fromCharCode(96).repeat(3);
   const converter=new TurndownService({headingStyle:'atx',codeBlockStyle:'fenced',bulletListMarker:'-'});
   converter.use(gfm);
+  converter.addRule('editorStrikethrough',{filter:['del','s','strike'],replacement:content=>'~~'+content+'~~'});
   marked.use({extensions:[{name:'wikiLink',level:'inline',start:source=>source.indexOf('[['),tokenizer(source){const match=source.match(/^\[\[[^\]\r\n]+\]\]/);if(match&&WikiLinks.parse(match[0]))return {type:'wikiLink',raw:match[0]};},renderer:token=>WikiLinks.html(token.raw)}]});
   converter.addRule('wikiLinks',{filter:node=>node.hasAttribute('data-wiki-source'),replacement:(_,node)=>node.getAttribute('data-wiki-source')});
   converter.addRule('sizedImages',{filter:node=>node.nodeName==='IMG'&&(node.hasAttribute('width')||node.hasAttribute('height')||node.hasAttribute('data-image-align')),replacement:(_,node)=>'\n\n'+node.outerHTML+'\n\n'});
@@ -16,7 +19,7 @@
   markdown=html=>{const t=document.createElement('template');t.innerHTML=PageLayout.cleanHtml(html);ProjectModel.cleanAssets(t.content);return converter.turndown(t.innerHTML);};
   renderMarkdown=source=>{
     const template=document.createElement('template');
-    template.innerHTML=marked.parse(source,{gfm:true});
+    template.innerHTML=marked.parse(SelectionTools.repairEscapedHeadingLinks(source),{gfm:true});
     template.content.querySelectorAll('pre>code.language-mermaid').forEach(code=>{
       const figure=document.createElement('figure');figure.className='diagram-block';figure.contentEditable='false';
       figure.dataset.mermaid=code.textContent.replace(/\n$/,'');code.parentElement.replaceWith(figure);
@@ -122,6 +125,7 @@
     task.finally(()=>{if(queues.get(file.id)===task)queues.delete(file.id)});
     return task;
   }
+  DocumentTabMenu.connect({save:nativeSave});
   save=({manual=false,all=false}={})=>{
     if(!ready)return false;
     captureDocument();recordDocumentEdit(files[active]);updateSaveState();updateStats();
@@ -246,7 +250,20 @@
     try{const path=await invoke('export_document',{name,content,format:type.includes('html')?'html':'md',page:null});if(path)toast('Document exported');}
     catch(error){showError('Export failed',error);}
   };
-  window.print=()=>invoke('print_document').catch(error=>showError('Could not print',error));
+  let printForTest=null;
+  const printer=PrintService.create({
+    prepare:async()=>{
+      const file=files[active];if(!file){toast('Open a document before printing');return false;}
+      if($('#dialog').open){toast('Close the open dialog before printing');return false;}
+      applyPage();await document.fonts.ready;await hydrateDiagrams();
+      if(files[active]!==file)throw Error('The active document changed. Try printing again.');
+      PrintService.snapshot($('#paper'));
+      return true;
+    },
+    print:()=>printForTest?printForTest():systemPrint(),
+    onError:error=>{PrintService.clearSnapshot();showError('Could not print',error);}
+  });
+  window.print=()=>printer.request();
   Object.assign(officeActions,{
     'save-now':()=>nativeSave(),
     storage:()=>openDialog('Workspace data','<p>Documents are saved as local UTF-8 Markdown files. Templates, recovery buffers, and settings stay in this data folder:</p><p style="overflow-wrap:anywhere">'+escapeHtml(dataDirectory)+'</p><p>Keep EditorMD-data beside the executable when moving the portable app. Unsaved recovery buffers do not overwrite your Markdown files.</p>'),
@@ -257,7 +274,7 @@
     designRibbon(tab);
     if(tab==='File'){
       const group=document.createElement('div');group.className='ribbon-group';
-      group.innerHTML='<div class="ribbon-row"><button class="large-tool" id="native-open">'+icon('folder')+'<span>Open…</span></button><button class="large-tool" id="native-save-as">'+icon('download')+'<span>Save as…</span></button></div><div class="ribbon-label">Local files</div>';
+      group.innerHTML='<div class="ribbon-row"><button class="large-tool" id="native-open">'+icon('folder')+'<span>Open…</span></button><button class="large-tool" id="native-save-as">'+icon('save')+'<span>Save as…</span></button></div><div class="ribbon-label">Local files</div>';
       $('#ribbon').prepend(group);$('#native-open').onclick=nativeOpen;$('#native-save-as').onclick=()=>nativeSave(files[active],{saveAs:true});$('#native-save-as').disabled=active<0;
     }
   };
@@ -282,13 +299,14 @@
     const boot=await invoke('bootstrap');dataDirectory=boot.dataDirectory;appVersion=boot.version;
     try{await FontManager.connect(invoke);}catch(error){toast('System font list unavailable: '+String(error));}
     WikiLinks.connect({invoke,adoptDocuments});
+    SelectionTools.connect({invoke});
     const stored=boot.workspace;
     files=Array.isArray(stored?.files)?stored.files.filter(file=>typeof file.id==='string'&&typeof file.name==='string'&&typeof file.html==='string'):[];
-    files.forEach(file=>{file.html=sanitize(file.html);file.sourceHtml=file.html;file.sourceText=sourceOf(file);});
+    files.forEach(file=>{file.html=sanitize(file.html);WikiLinks.repairStored(file);file.sourceHtml=file.html;file.sourceText=sourceOf(file);});
     documentState=new DocumentState(files,()=>{});documentState.saved.clear();
     for(const snapshot of stored?.saved||[]){
       const file=files.find(file=>file.id===snapshot.id);
-      if(file)documentState.saved.set(file,structuredClone(snapshot));
+      if(file)documentState.saved.set(file,WikiLinks.repairStored(structuredClone(snapshot)));
     }
     for(const doc of boot.disks){
       const file=files.find(file=>file.id===doc.id),saved=file&&documentState.saved.get(file);
@@ -313,6 +331,7 @@
     await window.__TAURI__.event.listen('native-close-requested',closeWindow);
     await window.__TAURI__.event.listen('native-open-requested',receiveExternalOpen);
     projects=await installProjectUI({invoke,listen:window.__TAURI__.event.listen,adoptDocuments,fileFromDisk,queueCheckpoint,nativeSave,showError,queues,autosaveTimers,sourceOf});
+    SidebarDock.refresh();
     await invoke('desktop_ready');
     await projects.checkExternal();
     if(boot.warnings.length)showError('Some files need attention',boot.warnings.join('\n'));
@@ -322,6 +341,27 @@
         autosaveEnabled=false;
         const results=[];
         const check=(condition,label)=>{if(!condition)throw Error(label);results.push(label);};
+        check(document.body.classList.contains('dark')&&appearance.dark.main==='#0b121e'&&appearance.dark.accent==='#df873a','A fresh workspace defaults to the requested navy and orange dark theme');
+        check(RibbonUI.collapsed&&$('#profile').textContent==='MD','A fresh workspace starts with a collapsed ribbon and MD initials');
+        check(['appearance','theme','profile'].every(id=>getComputedStyle($('#'+id)).display!=='none'&&$('#'+id).getBoundingClientRect().width>0),'Appearance, theme and profile controls remain visible in the default compact header');
+        let printCalls=0,printCopy=null;
+        printForTest=()=>{printCalls++;printCopy=$('#print-document');};
+        const printMode=mode,printZoom=documentZoom;
+        setMode('source');zoom(175);
+        ribbon('File');$('#ribbon [data-action="print"]').click();
+        const untilPrint=async count=>{const deadline=Date.now()+6000;while(printCalls<count){if(Date.now()>deadline)throw Error('Print action did not reach the system print method');await new Promise(resolve=>setTimeout(resolve,30));}};
+        await untilPrint(1);
+        check(printCopy?.textContent.includes('Native smoke test')&&!printCopy.style.height&&!printCopy.style.maskImage,'Print uses a clean document snapshot without screen pagination or zoom');
+        check(mode==='source'&&documentZoom===175,'Printing preserves Source mode and document zoom');
+        window.dispatchEvent(new Event('afterprint'));
+        check(!$('#print-document')&&!document.body.classList.contains('printing-document'),'Closing or cancelling print clears the temporary snapshot');
+        exportDialog();$('[data-export="pdf"]').click();await untilPrint(2);
+        check(!$('#dialog').open&&printCalls===2,'Export PDF closes its menu and calls the preserved system print method once');
+        window.dispatchEvent(new Event('afterprint'));
+        document.dispatchEvent(new KeyboardEvent('keydown',{key:'p',ctrlKey:true,bubbles:true,cancelable:true}));await untilPrint(3);
+        check(printCalls===3,'Ctrl+P uses the same working print path');
+        window.dispatchEvent(new Event('afterprint'));printForTest=null;
+        setMode(printMode);zoom(printZoom);ribbon('Home');
         const file=files[active],source=sourceOf(file);
         check(!!file.nativePath,'Native file opened');
         zoom(200);$('#zoom-in').click();
@@ -330,7 +370,7 @@
         check(documentZoom===800&&$('#zoom-label').textContent==='800%','Custom document zoom accepts 800%');
         check(!zoom(0)&&documentZoom===800,'Invalid custom zoom leaves the previous view intact');
         setInterfaceZoom(125);setProfileInitials('xy');
-        appearanceDialog();
+        appearanceDialog('interface');
         check($('#ui-zoom-number').value==='125'&&$('#profile-initials').value==='XY','Appearance shares interface zoom and editable initials');
         check(Math.abs($('.app').getBoundingClientRect().height-innerHeight)<3,'UI scaling fits the application to the window');
         check($('#dialog').getBoundingClientRect().height<=innerHeight,'Appearance remains accessible after UI scaling');
@@ -343,6 +383,8 @@
         setInterfaceZoom(100);setProfileInitials('KF');zoom(100);
         const paginationDetails=await runPaginationChecks(check);
         await runFeatureChecks(check,{invoke,projects});
+        await runEditingChecks(check,{invoke});
+        await runCustomizationChecks(check,{invoke,projects});
         openFile(files.indexOf(file));
         // Actual second process, including relative paths, spaces, Unicode, and a duplicate.
         openDialog('Single-instance test','<p>Incoming files wait until this dialog closes.</p>');

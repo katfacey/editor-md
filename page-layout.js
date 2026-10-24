@@ -36,12 +36,16 @@
     properties.add(property);element.setAttribute('data-editor-page-properties',[...properties].join(','));
   }
   function clean(node){
+    node.querySelectorAll('[data-editor-inline-caret]').forEach(marker=>{
+      const walker=document.createTreeWalker(marker,NodeFilter.SHOW_TEXT);while(walker.nextNode())walker.currentNode.textContent=walker.currentNode.textContent.replaceAll('\u200b','');
+      marker.replaceWith(...marker.childNodes);
+    });
     node.querySelectorAll('[data-editor-page-exclusion]').forEach(element=>element.remove());
     node.querySelectorAll('[data-editor-page-style]').forEach(restoreViewStyle);
     return node;
   }
   function cleanHtml(html){
-    if(!html.includes('data-editor-page-'))return html;
+    if(!html.includes('data-editor-page-')&&!html.includes('data-editor-inline-caret'))return html;
     const template=document.createElement('template');template.innerHTML=html;
     clean(template.content);return template.innerHTML;
   }

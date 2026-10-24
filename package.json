@@ -1,11 +1,11 @@
 {
   "name": "editor-md-design",
-  "version": "0.2.0",
+  "version": "0.2.6",
   "private": true,
   "description": "Editor, MD — portable Rust desktop Markdown editor",
   "scripts": {
     "start": "node serve.cjs",
-    "check": "node --check app.js && node --check office.js && node --check chart-model.js && node --check graph-studio.js && node --check document-state.js && node --check workspace-ui.js && node --check desktop.js && node --check view-settings.js && node --check footnotes.js && node --check footnotes-ui.js && node --check project-model.js && node --check project-ui.js && node --check page-layout.js && node --check pagination-checks.js && node --check workspace-controls.js && node --check wiki-links.js && node --check font-manager.js && node --check feature-checks.js && node --check image-tools.js",
+    "check": "node --check app.js && node --check office.js && node --check chart-model.js && node --check graph-studio.js && node --check document-state.js && node --check workspace-ui.js && node --check desktop.js && node --check view-settings.js && node --check footnotes.js && node --check footnotes-ui.js && node --check project-model.js && node --check project-ui.js && node --check page-layout.js && node --check pagination-checks.js && node --check workspace-controls.js && node --check wiki-links.js && node --check font-manager.js && node --check feature-checks.js && node --check image-tools.js && node --check print-service.js && node --check write-input.js && node --check selection-tools.js && node --check editing-checks.js && node --check workspace-layout.js && node --check document-themes.js && node --check appearance-ui.js && node --check customization-checks.js && node --check document-tab-menu.js && node --check startup-diagnostics.js",
     "test": "node --test tests/*.test.cjs",
     "build:ui": "node scripts/build-ui.mjs",
     "build:windows": "powershell -ExecutionPolicy Bypass -File scripts/build-windows.ps1"

@@ -10,22 +10,25 @@
 <link rel="stylesheet" href="editing.css">
 <link rel="stylesheet" href="project.css">
 <link rel="stylesheet" href="workspace-controls.css">
+<link rel="stylesheet" href="print.css">
+<link rel="stylesheet" href="selection-tools.css">
+<link rel="stylesheet" href="customization.css">
 </head>
 <body>
 <div class="app">
   <header class="titlebar">
     <a class="brand" href="#" aria-label="Editor, MD home"><span class="brandmark project-icon"><img src="assets/editor-md-icon.png" alt="" width="34" height="34"></span>Editor<span class="brand-comma">,</span> <b>MD</b><span class="prototype">DESIGN PREVIEW</span></a>
     <span class="window-title">The thoughtful workspace <span>— Editor, MD</span></span>
-    <div class="title-actions"><button id="appearance" title="Customize appearance" aria-label="Customize appearance" data-icon="palette"></button><button id="theme" title="Switch color theme" aria-label="Switch color theme" data-icon="moon"></button><button class="avatar" id="profile" title="Edit your initials" aria-label="Edit your initials">KF</button></div>
+    <div class="title-actions"><button id="appearance" title="Customize appearance" aria-label="Customize appearance" data-icon="palette"></button><button id="theme" title="Switch color theme" aria-label="Switch color theme" data-icon="moon"></button><button class="avatar" id="profile" title="Edit your initials" aria-label="Edit your initials">MD</button></div>
   </header>
   <div class="menubar">
     <nav id="ribbon-tabs" aria-label="Ribbon"><button data-tab="File">File</button><button class="active" data-tab="Home">Home</button><button data-tab="Insert">Insert</button><button data-tab="Layout">Layout</button><button data-tab="References">References</button><button data-tab="Review">Review</button><button data-tab="View">View</button></nav>
-    <div class="menu-actions"><span class="saved" id="save-state">✓ Saved locally</span><button id="find" class="search-button"><span data-icon="search"></span> Find anything <kbd>Ctrl K</kbd></button><button class="export primary" id="export"><span data-icon="download"></span> Export <span>⌄</span></button></div>
+    <div class="menu-actions"><span class="saved" id="save-state">✓ Saved locally</span><button id="find" class="search-button"><span data-icon="search"></span> Find anything <kbd>Ctrl K</kbd></button><button class="export primary" id="export"><span data-icon="export"></span> Export <span>⌄</span></button></div>
   </div>
   <section class="ribbon" aria-label="Formatting toolbar" id="ribbon"></section>
   <main class="workspace">
     <aside class="navigator" id="navigator">
-      <div class="workspace-name"><span class="workspace-logo" data-icon="folder"></span><div>My workspace<small>LOCAL WORKSPACE</small></div><button title="New document" aria-label="New document" id="new-doc">+</button></div>
+      <div class="workspace-name"><button id="open-project" title="Open project folder" aria-label="Open project folder"><span class="workspace-logo" data-icon="folder"></span><span class="workspace-copy"><strong id="project-name">My workspace</strong><small id="project-path">Open a project folder</small></span></button><div class="workspace-actions"><button id="project-refresh" aria-label="Refresh project" title="Refresh project" hidden>↻</button><button id="close-project" aria-label="Close project folder" title="Close project folder" hidden>×</button></div></div>
       <div class="sidebar-tabs"><button class="selected" data-side="files">Files</button><button data-side="outline">Outline</button><button data-side="bookmarks">Bookmarks</button></div>
       <div id="sidebar-content"></div>
       <div class="workspace-bottom"><span class="local-dot"></span><div>Your words. Your files.<small>Stored on this device</small></div><button aria-label="About this preview" id="about" data-icon="settings"></button></div>
@@ -51,6 +54,7 @@
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <dialog id="dialog"><div class="dialog-head"><h2 id="dialog-title">Find anything</h2><button id="close-dialog" aria-label="Close dialog">✕</button></div><div id="dialog-content"></div></dialog>
+<script src="startup-diagnostics.js"></script>
 <script src="footnotes.js"></script>
 <script src="project-model.js"></script>
 <script src="view-settings.js"></script>
@@ -60,6 +64,12 @@
 <script src="wiki-links.js"></script>
 <script src="font-manager.js"></script>
 <script src="image-tools.js"></script>
+<script src="print-service.js"></script>
+<script src="write-input.js"></script>
+<script src="selection-tools.js"></script>
+<script src="workspace-layout.js"></script>
+<script src="document-themes.js"></script>
+<script src="document-tab-menu.js"></script>
 <script src="app.js"></script>
 <script src="office.js"></script>
 <script src="chart-model.js"></script>
@@ -68,6 +78,9 @@
 <script src="project-ui.js"></script>
 <script src="pagination-checks.js"></script>
 <script src="feature-checks.js"></script>
+<script src="editing-checks.js"></script>
 <script src="workspace-controls.js"></script>
+<script src="appearance-ui.js"></script>
+<script src="customization-checks.js"></script>
 </body>
 </html>

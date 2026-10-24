@@ -17,6 +17,7 @@ use std::{
 };
 use tauri::{Emitter, Manager};
 mod font_commands;
+mod link_commands;
 mod project_commands;
 
 // Cargo uses SemVer; display Windows-style hotfix versions such as 0.1.3.2.
@@ -111,8 +112,9 @@ async fn take_pending_documents(
 #[tauri::command]
 async fn bootstrap(state: tauri::State<'_, Services>) -> Result<Value, String> {
     let smoke_test = std::env::args().any(|a| a == "--smoke-test");
+    let print_ui_test = std::env::args().any(|a| a == "--print-ui-test");
     let path = state.root.join("workspace.json");
-    let workspace: Value = if path.exists() && !smoke_test {
+    let workspace: Value = if path.exists() && !smoke_test && !print_ui_test {
         if fs::metadata(&path).map_err(|e| e.to_string())?.len() > 64 * 1024 * 1024 {
             return Err("Recovery workspace exceeds 64 MiB.".into());
         }
@@ -322,11 +324,6 @@ fn finish_close(
 }
 
 #[tauri::command]
-fn print_document(window: tauri::WebviewWindow) -> Result<(), String> {
-    window.print().map_err(|e| e.to_string())
-}
-
-#[tauri::command]
 fn desktop_ready(app: tauri::AppHandle, state: tauri::State<'_, Services>) {
     state.frontend_ready.store(true, Ordering::SeqCst);
     if let Err(error) = project_commands::refresh_watches(&app) {
@@ -418,10 +415,13 @@ async fn smoke_launch_secondary(state: tauri::State<'_, Services>) -> Result<(),
 
 fn data_directory(app: &tauri::App) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let smoke_test = std::env::args().any(|a| a == "--smoke-test" || a == "--smoke-child");
+    let print_ui_test = std::env::args().any(|a| a == "--print-ui-test");
     let portable = std::env::current_exe()?
         .parent()
         .ok_or("Missing executable directory")?
-        .join(if smoke_test {
+        .join(if print_ui_test {
+            "EditorMD-print-test"
+        } else if smoke_test {
             "EditorMD-smoke"
         } else {
             "EditorMD-data"
@@ -453,7 +453,10 @@ fn main() {
     let forwarded = pending.clone();
     let mut context = tauri::generate_context!();
     let isolated = std::env::args().any(|a| a == "--smoke-test" || a == "--smoke-child");
-    if isolated {
+    let print_ui_test = std::env::args().any(|a| a == "--print-ui-test");
+    if print_ui_test {
+        context.config_mut().identifier.push_str(".printtest");
+    } else if isolated {
         context.config_mut().identifier.push_str(".smoke");
     }
     tauri::Builder::default()
@@ -521,13 +524,13 @@ fn main() {
             font_commands::list_fonts,
             font_commands::import_custom_font,
             font_commands::read_custom_font,
+            link_commands::open_web_link,
             take_pending_documents,
             open_documents,
             save_document,
             save_workspace,
             export_document,
             finish_close,
-            print_document,
             desktop_ready,
             smoke_result,
             smoke_external_change,
