@@ -7,4 +7,9 @@
   #print-document img{max-width:100%;height:auto}
   #print-document .diagram-image svg text{fill:#28332f!important}
   #print-document .diagram-image svg .node rect,#print-document .diagram-image svg .node polygon{fill:#eef2e9!important;stroke:#53695d!important}
+  #print-document h1,#print-document h2,#print-document h3,#print-document h4{break-after:avoid-page;page-break-after:avoid}
+  #print-document p,#print-document li,#print-document blockquote{orphans:2;widows:2}
+  #print-document figure,#print-document pre,#print-document tr{break-inside:avoid-page;page-break-inside:avoid}
+  #print-document table{width:100%;border-collapse:collapse}
+  #print-document thead{display:table-header-group}
 }

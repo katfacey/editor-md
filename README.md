@@ -2,6 +2,8 @@
 
 **A healthy place for your words.** A Windows Markdown editor with an office-style ribbon, a page canvas, a source editor, and an optional doctor mascot. MD means both *Markdown* and *doctor*.
 
+**0.2.8 Beta 7** adds faster table editing, a cleaner collapsed ribbon and Focus control, and adjustable translucent Page and Web backgrounds. See [Release notes](RELEASE-NOTES.md) for changes since the previous GitHub release.
+
 **0.2.6 Beta 3** adds a compact ribbon menu, Markdown-focused formatting controls, document styles, flexible sidebar and document tabs, and working Print/PDF since the 0.2.0 release. It also fixes formatted links to headings, including `[**The Fireworks Festival**](#scene-1-the-fireworks-festival)`. See the [release notes](RELEASE-NOTES.md) for the full comparison.
 
 Version 0.2.0 added Ctrl+wheel document zoom, resizable sidebars, separate UI text sizing, system and custom fonts, wiki links, and image sizing and placement. It also includes separate physical pages, project folders, search, relative attachments, footnotes, and safe tabbed file editing. The application host and file services are written in **Rust with Tauri 2**; the shared interface uses HTML, CSS, and JavaScript. Its interface, fonts, mascot, icon, and Mermaid renderer are embedded in the executable. No Node.js, browser tab, local web server, account, or subscription is needed to use the desktop app.
@@ -60,6 +62,17 @@ If its folder is read-only, workspace data falls back to the user's local applic
 | Create graphs | **Insert → Graph studio**; edit chart data, flowchart nodes/connections, or Mermaid source |
 | Reuse a document | **File → Save as template**, then expand **Templates** |
 | Find recent work | Expand **Archive**; it lists recently created, edited, and opened documents |
+| Find and replace | **Home → Find / Replace** or **Ctrl+H** searches the current document’s Markdown, with case and whole-word options. Replace one or all without rewriting untouched source |
+| Search commands | **Ctrl+Shift+P**, or **View → Commands**, searches common file, view, editing and review commands |
+| Navigate the outline | Open the **Outline** sidebar tab to jump between headings and collapse branches; the current section is highlighted |
+| Check links | **Review → Check links** reports missing local headings and, with a project folder open, missing project files or ambiguous wiki notes. Web links are skipped |
+| Reopen a closed tab | **Ctrl+Shift+T** or **File → Reopen tab**; saved files return with their previous scroll and caret position |
+| Paste from other apps | Paste rich text or spreadsheet cells into Write/Split. A URL pasted over selected text becomes a link. **Copy as Markdown** and **Paste as plain text** are in Commands |
+| Edit a table | Put the caret in a cell, then **Insert → Edit table** to insert/delete rows or columns and set column alignment. Tab moves to the next cell and adds a row at the end; Shift+Tab moves back |
+| Add one row or column | Hover a row or column separator until its blue line and **+** appear. Click to add a row beneath that line or a column to its left |
+| Insert a sized table | **Home → Table** opens an 8-row by 10-column grid picker; hover to preview the size and click to insert |
+| Compact and Focus views | The top chevron collapses the ribbon while keeping both sidebars. **Focus** also hides both sidebars and collapses the ribbon. Leaving Focus restores the sidebars and keeps the compact header |
+| Compare or restore a version | **File → Version history** shows a line comparison before restoration. Restoring opens an unsaved buffer; use Save to apply it to disk |
 | Export or print | **Export** for a Markdown copy, styled HTML, or Print / PDF; choose **Save as PDF** or **Microsoft Print to PDF** in the print dialog |
 
 Custom fonts are validated and copied into **EditorMD-data/fonts**, loaded privately by the app, and restored at startup. Keep that folder with the executable when moving it. Fonts are not installed into Windows or embedded in Markdown; other readers need the same family or will use a fallback. Only import fonts you have permission to use.
@@ -131,7 +144,7 @@ For an isolated manual print check, **--print-ui-test** opens a separate test pr
 
 The built executable supports **--self-test** for a non-GUI file-service check and **--smoke-test** for an isolated, hidden native-WebView integration test. The latter writes a report in **EditorMD-smoke** beside the executable, checks actual paper geometry and scrolling, zoom, sidebar resizing, UI text sizing, native fonts, wiki links, large image imports and resizing, editing, footnotes, native saves, tab handling, project search, relative images, and actual filesystem watcher events, then exits automatically.
 
-The local test version is **0.2.3** across Rust, Tauri and npm. The portable ZIP includes **samples/Pagination-stress-test.md** for manual testing.
+The local test version is **0.2.8-beta.7** across Rust, Tauri and npm. The portable ZIP includes **samples/Pagination-stress-test.md** for manual testing.
 
 Running **npm start** retains the [browser design preview](design/PROTOTYPE.md) at **http://127.0.0.1:4173**; the desktop app runs independently of that server.
 

@@ -22,7 +22,7 @@ function readAppearance(){
   }catch{}
 }
 readAppearance();
-const mascotDefaults={visible:true,opacity:20};
+const mascotDefaults={visible:true,opacity:20,pageOpacity:80,textShadow:false,textBox:false};
 let mascotSettings={...mascotDefaults};
 function readMascotSettings(){
   mascotSettings={...mascotDefaults};
@@ -30,15 +30,28 @@ function readMascotSettings(){
     const value=JSON.parse(localStorage.getItem('editor-md-mascot-v1'));
     if(typeof value?.visible==='boolean')mascotSettings.visible=value.visible;
     if(typeof value?.opacity==='number'&&Number.isFinite(value.opacity))mascotSettings.opacity=Math.min(100,Math.max(0,Math.round(value.opacity)));
+    if(typeof value?.pageOpacity==='number'&&Number.isFinite(value.pageOpacity))mascotSettings.pageOpacity=Math.min(100,Math.max(0,Math.round(value.pageOpacity)));
+    if(typeof value?.textShadow==='boolean')mascotSettings.textShadow=value.textShadow;
+    if(typeof value?.textBox==='boolean')mascotSettings.textBox=value.textBox;
   }catch{}
 }
 function applyMascot(){
   document.body.classList.toggle('show-mascot',mascotSettings.visible);
+  document.body.classList.toggle('page-text-shadow',mascotSettings.textShadow);
+  document.body.classList.toggle('page-text-box',mascotSettings.textBox);
   document.body.style.setProperty('--mascot-opacity',String(mascotSettings.opacity/100));
+  document.body.style.setProperty('--page-opacity',mascotSettings.pageOpacity+'%');
+  document.body.style.setProperty('--page-blur',mascotSettings.pageOpacity/10+'px');
   const toggle=$('#show-mascot'),slider=$('#mascot-opacity'),output=$('#mascot-opacity-value');
   if(toggle)toggle.checked=mascotSettings.visible;
   if(slider){slider.value=mascotSettings.opacity;slider.disabled=!mascotSettings.visible;slider.setAttribute('aria-valuetext',mascotSettings.opacity+'%')}
   if(output)output.textContent=mascotSettings.opacity+'%';
+  const pageSlider=$('#page-opacity'),pageOutput=$('#page-opacity-value');
+  if(pageSlider){pageSlider.value=mascotSettings.pageOpacity;pageSlider.setAttribute('aria-valuetext',mascotSettings.pageOpacity+'%')}
+  if(pageOutput)pageOutput.textContent=mascotSettings.pageOpacity+'%';
+  const shadow=$('#page-text-shadow'),box=$('#page-text-box');
+  if(shadow)shadow.checked=mascotSettings.textShadow;
+  if(box)box.checked=mascotSettings.textBox;
 }
 function saveMascotSettings(){
   try{localStorage.setItem('editor-md-mascot-v1',JSON.stringify(mascotSettings))}catch{}
@@ -132,9 +145,15 @@ function appearanceDialog(){
     </fieldset>
     <fieldset class="mascot-settings"><legend>App background</legend>
       <label class="mascot-toggle" for="show-mascot"><input id="show-mascot" type="checkbox">Show mascot</label>
-      <div class="mascot-opacity-heading"><label for="mascot-opacity">Opacity</label><output id="mascot-opacity-value" for="mascot-opacity">20%</output></div>
+      <div class="mascot-opacity-heading"><label for="mascot-opacity">Mascot opacity</label><output id="mascot-opacity-value" for="mascot-opacity">20%</output></div>
       <input id="mascot-opacity" type="range" min="0" max="100" step="1" value="20" aria-describedby="mascot-help">
-      <p id="mascot-help">One background fits the entire app as the window resizes. Shared by light and dark mode; document pages cover it.</p>
+      <p id="mascot-help">One background fits the entire app as the window resizes. Shared by light and dark mode.</p>
+      <div class="mascot-opacity-heading"><label for="page-opacity">Page opacity</label><output id="page-opacity-value" for="page-opacity">80%</output></div>
+      <input id="page-opacity" type="range" min="0" max="100" step="1" value="80" aria-describedby="page-opacity-help">
+      <p id="page-opacity-help">Adjusts Page and Web backgrounds so the app background can show through. Printed pages and PDFs stay opaque.</p>
+      <label class="mascot-toggle" for="page-text-shadow"><input id="page-text-shadow" type="checkbox">Text shadow</label>
+      <label class="mascot-toggle" for="page-text-box"><input id="page-text-box" type="checkbox">Text backing</label>
+      <p>These reading aids affect the writing view only and do not change Markdown or printed output.</p>
     </fieldset>
     <p class="appearance-reset-status" id="appearance-reset-status" role="status" aria-live="polite" aria-atomic="true"></p>
     <div class="dialog-actions"><button id="reset-appearance" aria-describedby="appearance-reset-status">Restore defaults</button><button class="primary" id="done-colors">Done</button></div>`);
@@ -174,6 +193,9 @@ function appearanceDialog(){
   };
   $('#show-mascot').onchange=e=>{mascotSettings.visible=e.target.checked;saveMascotSettings();resetHint()};
   $('#mascot-opacity').oninput=e=>{mascotSettings.opacity=Number(e.target.value);saveMascotSettings();resetHint()};
+  $('#page-opacity').oninput=e=>{mascotSettings.pageOpacity=Number(e.target.value);saveMascotSettings();resetHint()};
+  $('#page-text-shadow').onchange=e=>{mascotSettings.textShadow=e.target.checked;saveMascotSettings();resetHint()};
+  $('#page-text-box').onchange=e=>{mascotSettings.textBox=e.target.checked;saveMascotSettings();resetHint()};
   $('#ui-zoom').oninput=event=>{setInterfaceZoom(event.target.value);resetHint()};
   $('#ui-zoom-number').onchange=event=>{if(!setInterfaceZoom(event.target.value)){$('#interface-error').textContent='UI zoom must be between 50% and 200%.';applyInterfaceSettings()}else $('#interface-error').textContent='';resetHint()};
   $('#ui-text-smaller').onclick=()=>setInterfaceTextSize(interfaceSettings.textSize-1);

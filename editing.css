@@ -16,7 +16,7 @@
   .page-stack{position:relative;zoom:var(--zoom,1);margin:0 auto;flex:1;min-width:0}
   .paper{position:relative;height:auto;overflow:visible;overflow-wrap:anywhere;zoom:1}
   #page-sheets{position:absolute;inset:0;pointer-events:none}
-  .page-sheet{position:absolute;width:var(--page-width,816px);height:var(--page-height,1056px);background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow)}
+  .page-sheet{position:absolute;width:var(--page-width,816px);height:var(--page-height,1056px);background:color-mix(in srgb,var(--paper) var(--page-opacity,80%),transparent);backdrop-filter:blur(var(--page-blur,8px));border:1px solid var(--line);box-shadow:var(--shadow)}
   .page-sheet:after{content:attr(data-page-number);position:absolute;bottom:24px;left:0;right:0;text-align:center;font:calc(9px * var(--ui-text-scale,1)) var(--font);color:var(--muted)}
   .source .page-stack{display:none}
   #source{height:auto;resize:none;overflow:hidden}
@@ -35,7 +35,7 @@
   .paginated .paper pre{overflow:visible;white-space:pre-wrap;overflow-wrap:anywhere}
   .document-area:not(.web-layout) .split #source{flex:none;width:420px}
   .web-layout .ruler,.web-layout .page-caption{display:none}
-  .web-layout .canvas-scroll{background:var(--paper);padding:30px clamp(18px,4vw,60px) 40px}
+  .web-layout .canvas-scroll{background:color-mix(in srgb,var(--paper) var(--page-opacity,80%),transparent);backdrop-filter:blur(var(--page-blur,8px));padding:30px clamp(18px,4vw,60px) 40px}
   .web-layout .editing-surface{max-width:none;width:100%;min-height:100%;margin:0;align-items:stretch}
   .web-layout .page-stack{flex:1;width:0}
   .web-layout .paper{width:100%;max-width:none;min-width:0;min-height:0;padding:0;border:0;box-shadow:none;background:transparent;overflow-wrap:anywhere}
@@ -44,7 +44,7 @@
   .web-layout .split .paper{padding:0}
   .web-layout .source #source{width:100%}
 }
-@media print{#page-sheets,[data-editor-page-exclusion],.paper:before{display:none!important}.page-stack{display:block!important;zoom:1!important;width:auto!important}.paper{height:auto!important;mask-image:none!important}}
+@media print{#page-sheets,[data-editor-page-exclusion],.paper:before{display:none!important}.page-stack{display:block!important;zoom:1!important;width:auto!important}.paper{height:auto!important;mask-image:none!important}.canvas-scroll{background:#fff!important;backdrop-filter:none!important}}
 @media(max-width:950px){.layout-switch{margin-left:auto}.canvas-top .mode-switch{margin-left:0}}
 @media(max-width:650px){.canvas-top{padding:8px 12px;gap:6px}.layout-switch button{padding:4px 6px}.web-layout .canvas-scroll{padding:22px 18px 30px}.web-layout .split{gap:12px}}
 .paper{font-size:12pt}

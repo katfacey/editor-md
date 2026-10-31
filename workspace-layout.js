@@ -92,10 +92,11 @@
   }
   function installRibbon(){
     let collapsed=true;try{collapsed=localStorage.getItem('editor-md-ribbon-collapsed')!=='false';}catch{}
+    let focused=false;
     const tabs=$('#document-tabs'),tabHome=document.createComment('Document tab home'),ribbonHome=document.createComment('Ribbon home');tabs.before(tabHome);$('#ribbon').before(ribbonHome);
     const brand=$('.brand');brand.setAttribute('role','button');brand.setAttribute('aria-label','Editor, MD menu');brand.setAttribute('aria-haspopup','true');brand.setAttribute('aria-expanded','false');
     const toggle=document.createElement('button');toggle.id='ribbon-toggle';toggle.setAttribute('aria-controls','ribbon');$('.title-actions').prepend(toggle);
-    const compactTabs=document.createElement('div');compactTabs.className='compact-document-tabs';$('.title-actions').before(compactTabs);
+    const compactTabs=document.createElement('div');compactTabs.className='compact-document-tabs';$('.titlebar').after(compactTabs);
     const menu=document.createElement('div');menu.id='md-menu';menu.className='md-menu';menu.hidden=true;menu.setAttribute('role','dialog');menu.setAttribute('aria-label','Editor, MD commands');menu.innerHTML='<nav aria-label="Command categories">'+['File','Home','Insert','Layout','References','Review','View','Help'].map(name=>'<button data-menu-category="'+name+'">'+name+'</button>').join('')+'</nav><div class="md-menu-commands"></div>';document.body.append(menu);
     let current='File',placeholder=null;
     function reserveExpandedRibbon(){
@@ -137,7 +138,8 @@
       menu.style.maxHeight=Math.max(120,(innerHeight-rect.bottom-14)/scale)+'px';
       const width=menu.getBoundingClientRect().width;menu.style.left=Math.max(8,Math.min(rect.left,innerWidth-width-8))/scale+'px';menu.style.top=(rect.bottom+6)/scale+'px';
     }
-    function setCollapsed(value){collapsed=!!value;close();document.body.classList.toggle('ribbon-collapsed',collapsed);if(collapsed)compactTabs.append(tabs);else tabHome.after(tabs);toggle.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="'+(collapsed?'m5 9 7 7 7-7':'m5 15 7-7 7 7')+'"/></svg>';toggle.setAttribute('aria-expanded',String(!collapsed));toggle.title=collapsed?'Expand ribbon':'Minimize ribbon';toggle.setAttribute('aria-label',toggle.title);try{localStorage.setItem('editor-md-ribbon-collapsed',String(collapsed));}catch{}document.dispatchEvent(new Event('viewchange'));}
+    function setCollapsed(value){collapsed=!!value;if(!collapsed&&focused)setFocus(false);close();document.body.classList.toggle('ribbon-collapsed',collapsed);if(collapsed)compactTabs.append(tabs);else tabHome.after(tabs);toggle.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="'+(collapsed?'m5 9 7 7 7-7':'m5 15 7-7 7 7')+'"/></svg>';toggle.setAttribute('aria-expanded',String(!collapsed));toggle.title=collapsed?'Expand ribbon':'Minimize ribbon';toggle.setAttribute('aria-label',toggle.title);try{localStorage.setItem('editor-md-ribbon-collapsed',String(collapsed));}catch{}document.dispatchEvent(new Event('viewchange'));}
+    function setFocus(value){focused=!!value;if(focused&&!collapsed)setCollapsed(true);$('.app').classList.toggle('focus',focused);const button=$('#focus');button.setAttribute('aria-pressed',String(focused));button.setAttribute('aria-label',focused?'Exit focus mode':'Focus mode');button.title=focused?'Exit focus mode':'Focus mode';document.dispatchEvent(new Event('viewchange'));return focused;}
     function category(name){current=name;$$('#md-menu [data-menu-category]').forEach(button=>{button.classList.toggle('selected',button.dataset.menuCategory===name);button.setAttribute('aria-pressed',String(button.dataset.menuCategory===name));});
       $('#ribbon').classList.toggle('md-home-ribbon',name==='Home');
       if(name==='Help'){$('#ribbon').innerHTML='<div class="ribbon-group"><div class="ribbon-row"><button id="menu-markdown-guide">Markdown formatting guide</button><button id="menu-about-editor">About Editor, MD</button></div></div>';$('#menu-markdown-guide').onclick=()=>action('markdown-guide');$('#menu-about-editor').onclick=()=>$('#about').click();}
@@ -158,7 +160,7 @@
     document.addEventListener('pointerdown',event=>{if(!menu.contains(event.target)&&!brand.contains(event.target))close();});
     document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!menu.hidden){close();brand.focus();}if((event.ctrlKey||event.metaKey)&&event.key==='F1'){event.preventDefault();setCollapsed(!collapsed);}});
     const observer=new MutationObserver(()=>{if($('#dialog').open)close();});observer.observe($('#dialog'),{attributes:true,attributeFilter:['open']});
-    setCollapsed(collapsed);return {setCollapsed,open,close,category,get collapsed(){return collapsed;}};
+    setCollapsed(collapsed);setFocus(false);return {setCollapsed,setFocus,toggleFocus:()=>setFocus(!focused),open,close,category,get collapsed(){return collapsed;},get focused(){return focused;}};
   }
   const api={panels,defaults,normalize,move,tabs,tabDefaults,installDock,installRibbon};if(typeof module==='object'&&module.exports)module.exports=api;else root.WorkspaceLayout=api;
 })(globalThis);

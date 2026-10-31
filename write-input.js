@@ -133,6 +133,26 @@
       event.preventDefault();event.stopImmediatePropagation();selection=range.cloneRange();
       converting=true;try{format('insertHTML',html+'<span data-editor-inline-caret="true">&#8203;</span>');}finally{converting=false;}
     },true);
+    paper.addEventListener('keydown',event=>{
+      if(event.key!=='Tab'||event.ctrlKey||event.altKey||event.metaKey||mode==='source')return;
+      const node=window.getSelection()?.anchorNode,element=node?.nodeType===1?node:node?.parentElement;
+      const cell=element?.closest('td,th');
+      if(cell&&paper.contains(cell)){
+        event.preventDefault();const table=cell.closest('table'),cells=[...table.querySelectorAll('th,td')];
+        let next=cells[cells.indexOf(cell)+(event.shiftKey?-1:1)];
+        if(!next&&!event.shiftKey){
+          const row=table.tBodies[0]?.insertRow()||table.insertRow();
+          for(let i=0;i<table.rows[0].cells.length;i++)row.insertCell();
+          next=row.cells[0];save();
+        }
+        if(next){const range=document.createRange(),selection=window.getSelection();range.selectNodeContents(next);range.collapse(true);selection.removeAllRanges();selection.addRange(range);next.focus();}
+        return;
+      }
+      const item=element?.closest('li');if(!item||!paper.contains(item))return;
+      event.preventDefault();
+      document.execCommand(event.shiftKey?'outdent':'indent',false,null);
+      save();
+    });
     return {convert};
   }
   const api={inline,block,textRange,install};if(typeof module==='object'&&module.exports)module.exports=api;else root.WriteInput=api;

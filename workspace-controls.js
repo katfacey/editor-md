@@ -36,6 +36,11 @@
     // Wheel steps share the quick-control range. Custom percentages remain unlimited.
     if(zoom(ViewSettings.toolbarZoom(old,event.deltaY<0?1:-1))){const ratio=documentZoom/old;canvas.scrollLeft=(canvas.scrollLeft+x)*ratio-x;canvas.scrollTop=(canvas.scrollTop+y)*ratio-y;}
   },{passive:false});
+  document.addEventListener('wheel',event=>{
+    if(!(event.ctrlKey||event.metaKey)||!event.deltaY||event.target.closest?.('#canvas-scroll'))return;
+    event.preventDefault();
+    setInterfaceZoom(Math.max(50,Math.min(200,interfaceSettings.zoom+(event.deltaY<0?5:-5))));
+  },{passive:false});
   window.WorkspaceControls={resize,widths};
 })();
 

@@ -79,7 +79,7 @@ async function runPaginationChecks(check){
     zoom(100);setInterfaceZoom(100);await settle();
     const sheetColor=getComputedStyle(sheets()[0]).backgroundColor;
     theme();await settle();
-    check(sheetGeometry()&&inkBounds().violations===0&&getComputedStyle(sheets()[0]).backgroundColor!==sheetColor,'Light and dark themes retain exact opaque sheets and readable page gaps');
+    check(sheetGeometry()&&inkBounds().violations===0&&getComputedStyle(sheets()[0]).backgroundColor!==sheetColor,'Light and dark themes retain exact sheet geometry, opacity and readable page gaps');
     theme();await settle();
     check(getComputedStyle(sheets()[0]).backgroundColor===sheetColor,'Returning to the original theme restores its sheet color');
     const pageBefore=structuredClone(draft.page);

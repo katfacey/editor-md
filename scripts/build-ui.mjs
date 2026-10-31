@@ -11,6 +11,8 @@ for(const file of ['startup-diagnostics.js','document-tab-menu.js','customizatio
   await writeFile('dist/'+file,source);
 }
 await cp('assets','dist/assets',{recursive:true});
+await copyFile('editor-tools.js','dist/editor-tools.js');
+await copyFile('editor-tools.css','dist/editor-tools.css');
 await copyFile('pagination-checks.js','dist/pagination-checks.js');
 await build({entryPoints:['node_modules/mermaid/dist/mermaid.esm.min.mjs'],outfile:'dist/vendor/mermaid.mjs',bundle:true,format:'esm',minify:true,target:'es2022',legalComments:'eof'});
 await build({stdin:{contents:"import {marked} from 'marked'; import TurndownService from 'turndown'; import {gfm} from 'turndown-plugin-gfm'; window.EditorMarkdown={marked,TurndownService,gfm};",resolveDir:process.cwd()},outfile:'dist/vendor/markdown.js',bundle:true,format:'iife',minify:true,target:'es2022',legalComments:'eof'});
